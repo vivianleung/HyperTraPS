@@ -382,7 +382,7 @@ def MakeObservations(
             print(leaf)
             try:
                 print(node_dict[leaf])
-            except:
+            except KeyError:
                 continue
     return obs, G
 
@@ -429,12 +429,12 @@ def CollapseSingleLeaves(tree, node_dict, label_dict, verbose=0):
                     try:
                         node_dict[parent] = node_dict[leaf]
                         del node_dict[leaf]
-                    except:
+                    except KeyError:
                         print("Leaf not in node dict...")
                     try:
                         label_dict[parent] = label_dict[leaf]
                         del label_dict[leaf]
-                    except:
+                    except KeyError:
                         print("Leaf not in label dict")
                     if verbose == 1 and False:
                         print(node_dict[parent])
@@ -486,7 +486,8 @@ def WriteGraph(G, outfile=args.outfile, graphviz=args.graphviz):
 
         try:
             write_dot(G, outfile[:-4] + ".gv")
-        except:
+        except Exception as err:
+            print("Warning: Exception in WriteGraph", err.args)
             pass
     nx.write_edgelist(
         G, outfile[:-4] + ".edgelist", delimiter="\t", data=False
