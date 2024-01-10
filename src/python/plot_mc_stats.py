@@ -20,69 +20,9 @@ args = parser.parse_args()
 # Print args used in script after parsing
 print_args(args)
 
-file1 = args.f
-
-# Load and label data
-df1 = pd.read_csv(file1, index_col=None)
-mc_step1 = df1["mcmc_step"] if "mcmc_step" in df1 else df1["smc_step"]
-log_lik1 = df1["log_likelihood"]
-accepts1 = df1["accepts"]
-accepts_lower1 = df1["accepts_lower"]
-
-start = list(mc_step1).index(args.b)
-last = int(args.last / mc_step1[1])
-
-# Calculate acceptance over "last" number of time steps in "stats.csv"
-temp_ = []
-accepts1_l = list(df1["accepts"])
-step = range(0, len(df1) + 1)
-for i in range(len(df1)):
-    if i > last + 1:
-        temp_.append(
-            (
-                accepts1_l[i] * step[i + 1]
-                - accepts1_l[i - last + 1] * (step[i - last + 1])
-            )
-            / (step[i + 1] - (step[i - last + 1]))
-        )
-    else:
-        temp_.append(np.nan)
-accepts3 = temp_
-
-temp_ = []
-accepts_l = list(df1["accepts"])
-accepts0_l = list(df1["accepts0"])
-accepts_lower_l = list(df1["accepts_lower"])
-accepts0_lower_l = list(df1["accepts0_lower"])
-step = range(0, len(df1) + 1)
-accepts_3 = []
-accepts0_3 = []
-accepts_lower_3 = []
-accepts0_lower_3 = []
-div_3 = []
-div0_3 = []
-data_lists = [accepts_l, accepts0_l, accepts_lower_l, accepts0_lower_l]
-new_data_lists = [accepts_3, accepts0_3, accepts_lower_3, accepts0_lower_3]
-for i in range(len(df1)):
-    for k, l in enumerate(data_lists):
-        if i > last + 1:
-            new_data_lists[k].append(
-                (l[i] * step[i + 1] - l[i - last + 1] * (step[i - last + 1]))
-                / (step[i + 1] - (step[i - last + 1]))
-            )
-        else:
-            new_data_lists[k].append(np.nan)
-    try:
-        div_3.append(accepts_lower_3[i] / new_data_lists[0][i])
-    except:
-        div_3.append(np.nan)
-    try:
-        div0_3.append(new_data_lists[3][i] / new_data_lists[1][i])
-    except:
-        div0_3.append(np.nan)
 
 
-def PlotFigure(mc_step1, log_lik1, div_3, div0_3, new_data_lists, start):
+def PlotFigure(mc_step1, log_lik1, div_3, div0_3, new_data_lists, start, last):
     plt.clf()
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
@@ -136,29 +76,91 @@ def PlotFigure(mc_step1, log_lik1, div_3, div0_3, new_data_lists, start):
         "stats-" + str(start) + ".png", transparent=True, bbox_inches="tight"
     )
 
+def main():
+    file1 = args.f
 
-PlotFigure(mc_step1, log_lik1, div_3, div0_3, new_data_lists, 0)
-PlotFigure(
-    [el - args.b for el in list(mc_step1)],
-    log_lik1,
-    div_3,
-    div0_3,
-    new_data_lists,
-    start,
-)
+    # Load and label data
+    df1 = pd.read_csv(file1, index_col=None)
+    mc_step1 = df1["mcmc_step"] if "mcmc_step" in df1 else df1["smc_step"]
+    log_lik1 = df1["log_likelihood"]
+    accepts1 = df1["accepts"]
+    accepts_lower1 = df1["accepts_lower"]
 
-width = 78
-print("-" * 100)
-print(
-    f"{f'Acceptance proportion at end over last {args.last} iterations':<{width}}: {new_data_lists[0][-1]:>20.3f}"
-)
-print(
-    f"{f'Increasing likelihood proportion end over last {args.last} iterations':<{width}}: {div_3[-1]:>20.2f}"
-)
-print(
-    f"{f'Acceptance proportion at end over last (APM) {args.last} iterations':<{width}}: {new_data_lists[1][-1]:>20.3f}"
-)
-print(
-    f"{f'Increasing likelihood proportion end over last (APM) {args.last} iterations':<{width}}: {div0_3[-1]:>20.2f}"
-)
-print("-" * 100)
+    start = list(mc_step1).index(args.b)
+    last = int(args.last / mc_step1[1])
+
+    # Calculate acceptance over "last" number of time steps in "stats.csv"
+    temp_ = []
+    accepts1_l = list(df1["accepts"])
+    step = range(0, len(df1) + 1)
+    for i in range(len(df1)):
+        if i > last + 1:
+            temp_.append(
+                (
+                    accepts1_l[i] * step[i + 1]
+                    - accepts1_l[i - last + 1] * (step[i - last + 1])
+                )
+                / (step[i + 1] - (step[i - last + 1]))
+            )
+        else:
+            temp_.append(np.nan)
+    accepts3 = temp_
+
+    temp_ = []
+    accepts_l = list(df1["accepts"])
+    accepts0_l = list(df1["accepts0"])
+    accepts_lower_l = list(df1["accepts_lower"])
+    accepts0_lower_l = list(df1["accepts0_lower"])
+    step = range(0, len(df1) + 1)
+    accepts_3 = []
+    accepts0_3 = []
+    accepts_lower_3 = []
+    accepts0_lower_3 = []
+    div_3 = []
+    div0_3 = []
+    data_lists = [accepts_l, accepts0_l, accepts_lower_l, accepts0_lower_l]
+    new_data_lists = [accepts_3, accepts0_3, accepts_lower_3, accepts0_lower_3]
+    for i in range(len(df1)):
+        for k, l in enumerate(data_lists):
+            if i > last + 1:
+                new_data_lists[k].append(
+                    (l[i] * step[i + 1] - l[i - last + 1] * (step[i - last + 1]))
+                    / (step[i + 1] - (step[i - last + 1]))
+                )
+            else:
+                new_data_lists[k].append(np.nan)
+        try:
+            div_3.append(accepts_lower_3[i] / new_data_lists[0][i])
+        except:
+            div_3.append(np.nan)
+        try:
+            div0_3.append(new_data_lists[3][i] / new_data_lists[1][i])
+        except:
+            div0_3.append(np.nan)
+
+    PlotFigure(mc_step1, log_lik1, div_3, div0_3, new_data_lists, 0, last)
+    PlotFigure(
+        [el - args.b for el in list(mc_step1)],
+        log_lik1,
+        div_3,
+        div0_3,
+        new_data_lists,
+        start,
+        last,
+    )
+
+    width = 78
+    print("-" * 100)
+    print(
+        f"{f'Acceptance proportion at end over last {args.last} iterations':<{width}}: {new_data_lists[0][-1]:>20.3f}"
+    )
+    print(
+        f"{f'Increasing likelihood proportion end over last {args.last} iterations':<{width}}: {div_3[-1]:>20.2f}"
+    )
+    print(
+        f"{f'Acceptance proportion at end over last (APM) {args.last} iterations':<{width}}: {new_data_lists[1][-1]:>20.3f}"
+    )
+    print(
+        f"{f'Increasing likelihood proportion end over last (APM) {args.last} iterations':<{width}}: {div0_3[-1]:>20.2f}"
+    )
+    print("-" * 100)

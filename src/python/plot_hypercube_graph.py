@@ -677,7 +677,7 @@ def MakeGreedyLabelSet(
             if i == limit - 1:
                 big_labels.append(small_labels)
     if label_colour_type == "standard":
-        colours = [pal[CycleColors(i)] for i in range(n_r)]
+        colours = [pal[CycleColors(i, ncolors)] for i in range(n_r)]
     else:
         colours = MakeColors(
             weights=range(n_r), scale=(n_r - 1) * 1.5, colormap=colormap
@@ -735,7 +735,7 @@ def MakeProbableLabelSet(
         big_labels.append(small_labels)
 
     if label_colour_type == "standard":
-        colours = [pal[CycleColors(i)] for i in range(n_r)]
+        colours = [pal[CycleColors(i, ncolors)] for i in range(n_r)]
     else:
         colours = MakeColors(
             weights=range(n_r), scale=(n_r - 1) * 1.5, colormap=colormap
@@ -803,7 +803,7 @@ def MakeProbableLabelSetData(
         big_labels.append(small_labels)
 
     if label_colour_type == "standard":
-        colours = [pal[CycleColors(i)] for i in range(len(paths))]
+        colours = [pal[CycleColors(i, ncolors)] for i in range(len(paths))]
     else:
         colours = MakeColors(
             weights=range(len(paths)), scale=len(paths) - 1, colormap=colormap
@@ -811,594 +811,601 @@ def MakeProbableLabelSetData(
     return big_labels, colours, paths
 
 
-# MAIN BLOCK
-font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
-mpl.rc("font", **font)
-
-prefix = ""
-file_name = args.f
-
-datafile = prefix + file_name
-
-if file_name.find("match-data") != -1 or file_name.find("zero-one") != -1:
-    node_tag = "-edge-list-long"
-    node_tag2 = "-state-list-long"
-    args.write_transitions = "no"
-else:
-    node_tag = (
-        "-edge-list-int" if args.node_type == "int" else "-edge-list-string"
-    )
-outfile = datafile.replace("list-pord", "list-pord" + node_tag).replace(
-    ".csv", ".txt"
-)
-outfile2 = datafile.replace("list-pord", "list-pord" + node_tag2).replace(
-    ".csv", ".txt"
-)
-
-outfile_graph = os.path.dirname(args.f)
-if len(outfile_graph) > 0:
-    outfile_graph += "/"
-outfile_graph = (
-    outfile
-    if args.outfile_graph == None
-    else outfile_graph + args.outfile_graph
-)
 
 
-df = pd.read_csv(datafile, index_col=None)
-L = max(df["feature"] + 1)
-if args.radial_label_distance == -1:
-    args.radial_label_distance = 1 / L
-
-args.extra_labels_routes = (
-    args.extra_labels_routes
-    if args.extra_labels_routes != None
-    else "1," + str(L - 1) + ",0"
-)
-if args.write_transitions != "no":
-    routes = MakeRoutes(df)
-    uts = np.random.shuffle(range(min(len(routes), int(args.tlimit))))
-    transitions = MakeTransitions(routes, uts=uts, node_type=args.node_type)
-    WriteOutTranstions(transitions, outfile)
-
-df = pd.read_csv(outfile, index_col=None, sep=" ")
-df2 = pd.read_csv(outfile2, index_col=None, sep=" ")
-
-G, nt = MakeGraph(df=df, L=L)
-G = AddNodeWeight(G, df=df2, L=L)
-if args.arb != None:
-    B = MinimumArborescence(G)
-    G = B
-CheckGraph(G)
-
-
-if args.probable_paths != None:
-    if args.node_type == "int":
-        source = 0
-        target = 2 ** L - 1
-    if args.node_type == "string":
-        source = StateToString([0] * L)
-        target = StateToString([1] * L)
-    paths, df_d = k_prob_shortest_paths(
-        G=G,
-        source=source,
-        target=target,
-        p=args.probable_paths,
-        weight="inv_lcprob",
-    )
-    G_2 = MakeNewGraph(G, paths)
-    print(G_2.edges())
-    fig, ax = plt.subplots(1, 1)
-    if L < 9:
-        n_p = len(list(nx.all_simple_paths(G, source=source, target=target)))
-        ax.plot(df_d.iloc[:, 0] / n_p, df_d.loc[:, "cdf"])
-        ax.set_xlabel("Proportion of paths found")
-    else:
-        ax.plot([el for el in df_d.loc[:, "count"]], df_d.loc[:, "cdf"])
-        ax.set_xlabel("Paths found")
-    ax.set_ylim(0, 1)
-    ax.set_xscale("log")
-    ax.set_ylabel("Probability of first x paths")
-    out = outfile_graph.replace("edge-list" + node_tag, "count-cdf")
-    out = (
-        out + ".png" if out.find(".txt") == -1 else out.replace(".txt", ".png")
-    )
-    plt.savefig(out, dpi=300)
-
-
-for node in G.nodes():
-    if len(G.in_edges(node)) < 1:
-        print(node)
-
-fixed_position = MakeFixedPosition(G, L)
-
-if args.layout_type == "noverlap":
-    node_sizes = CalculateNodeSizes(
-        G,
-        node_scale_exponent=args.node_scale_exponent,
-        node_scale=args.node_scale,
-        nt=nt,
-    )
-    node_sizes_d = dict(zip(G.nodes(), node_sizes))
-    gps = GroupPos(fixed_position, L=L)
-    fixed_positions, node_sizes_d = Noverlap(
-        G=G,
-        pos=fixed_position,
-        gpos=gps,
-        node_sizes=node_sizes_d,
-        node_scale_exponent=0.5,
-        space_to_diam=args.noverlap_space,
-    )
-    node_sizes = [node_sizes_d[node] for node in G.nodes()]
-
-if args.layout_type == "spring":
-    gps = GroupPos(fixed_position, L)
-    fixed_positions = AdjustGroupPos(
-        fixed_position, L, gps, gamma=args.gamma, gap_type=args.gap_type
-    )
-    node_sizes = CalculateNodeSizes(
-        G=G,
-        node_normalise=args.node_normalise,
-        node_scale_exponent=args.node_scale_exponent * 0.5,
-        node_scale=args.node_scale * (2 / L) * (1 / args.max_width),
-        nt=nt,
-    )
-
-    node_sizes_d = dict(zip(G.nodes(), node_sizes))
-
-if args.layout_type == "cube":
-    a = 1
-    b = 1 / 3
-    fixed_positions = {
-        0: (-1, 0),
-        1: (-b, 2 * b),
-        2: (-b, 0),
-        4: (-b, -2 * b),
-        3: (b, 2 * b),
-        5: (b, 0),
-        6: (b, -2 * b),
-        7: (1, 0),
-    }
-    node_sizes = CalculateNodeSizes(
-        G=G,
-        node_normalise=args.node_normalise,
-        node_scale_exponent=args.node_scale_exponent * 0.5,
-        node_scale=args.node_scale * (2 / L) * (1 / args.max_width),
-        nt=nt,
-    )
-
-    node_sizes_d = dict(zip(G.nodes(), node_sizes))
-
-
-fixed_nodes = fixed_positions.keys()
-nodes = G.nodes()
-edges = G.edges()
-if args.edge_normalise == 1.0:
-    weights = [G[u][v]["weight"] for u, v in edges]
-    if args.probable_paths != None:
-        weights_2 = [G_2[u][v]["weight"] for u, v in G_2.edges()]
-else:
-    weights = []
-    for u, v in edges:
-        if args.node_type == "int":
-            ones = BinFromInt(u, L).count(1)
-        else:
-            ones = StateToString(u).count(1)
-        weights.append(
-            (G[u][v]["weight"] / nt) / (1 / ncr(L, ones) * 1 / (L - ones)) * nt
-        )
-    if args.probable_paths != None:
-        weights_2 = []
-        for u, v in G_2.edges():
-            if args.node_type == "int":
-                ones = BinFromInt(u, L).count(1)
-            else:
-                ones = StateToString(u).count(1)
-            weights_2.append(
-                (G_2[u][v]["weight"] / nt)
-                / (1 / ncr(L, ones) * 1 / (L - ones))
-                * nt
-            )
-
-
-weights_original = Adjust(
-    weights, float(args.edge_alpha), float(args.edge_scale)
-)
-weights = Adjust(
-    weights, float(args.edge_scale_exponent), float(args.edge_scale)
-)
-if args.probable_paths != None:
-    weights_original_2 = Adjust(
-        weights_2, float(args.edge_alpha), float(args.edge_scale)
-    )
-    weights_2 = Adjust(
-        weights_2, float(args.edge_scale_exponent), float(args.edge_scale)
-    )
-
-
-# Plotting
-old_colorblind = [
-    "#0072b2",
-    "#009e73",
-    "#d55e00",
-    "#cc79a7",
-    "#f0e442",
-    "#56e4b9",
-]
-plt.clf()
-plt.style.use("seaborn-colorblind")
-ncolors_old = 6
-ncolors = ncolors_old
-pal = sns.color_palette("colorblind", ncolors_old)
-pal = sns.color_palette(old_colorblind)
-
-fig = plt.figure()
-fig.set_size_inches(args.width, args.width * args.aspect)
-ax = fig.add_subplot(111)
-pos = fixed_positions
-colors = MakeColors(weights)
-if args.node_normalise == 1.0 or args.edge_normalise == 1.0:
-    colorn = pal[0]
-else:
-    colorn = pal[0]
-
-
-def CycleColors(i, ncolors=ncolors, taken=2):
+def CycleColors(i, ncolors, taken=2):
     return i % (ncolors - taken) + int(taken / 2)
 
 
-def CycleColors(i, ncolors=ncolors, taken=[0, 2]):
+def CycleColors(i, ncolors, taken=[0, 2]):
     els = list(set(range(ncolors)) - set(taken))
     return els[i]
 
 
-def CycleColors(i, ncolors=ncolors, taken=[0, 2]):
+def CycleColors(i, ncolors, taken=[0, 2]):
     return i
 
 
-mw = max(node_sizes) / ((2 / L) * (1 / args.max_width)) * 8 / L
-if args.probable_paths != None:
-    node_sizes_2 = [node_sizes_d[el] for el in G_2.nodes()]
+def main():
+    # MAIN BLOCK
+    font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+    mpl.rc("font", **font)
 
+    prefix = ""
+    file_name = args.f
 
-if args.probable_paths == None:
-    widths = [el * mw for el in weights]
-    Edges = nx.draw_networkx_edges(
-        G,
-        pos,
-        edgelist=edges,
-        width=widths,
-        edge_color=args.edge_color,
-        arrowstyle=mpl.patches.ArrowStyle("-"),
-        ax=ax,
-        node_size=0,
-    )
+    datafile = prefix + file_name
 
-    Nodes = DrawNodesAsCircles(
-        G=G,
-        pos=pos,
-        radii=node_sizes,
-        aspect=args.aspect,
-        alpha=args.node_alpha,
-        color=colorn,
-        ax=ax,
-    )
-    if args.show_edge_alpha == "yes":
-        for i, edge in enumerate(Edges):
-            edge.set_alpha(weights_original[i] / args.edge_scale)
-
-else:
-    widths_2 = [el * mw for el in weights_2]
-    Edges = nx.draw_networkx_edges(
-        G_2,
-        pos,
-        edgelist=G_2.edges(),
-        width=widths_2,
-        edge_color=args.edge_color,
-        ax=ax,
-        arrowstyle=mpl.patches.ArrowStyle("-"),
-        node_size=0,
-    )
-
-    Nodes = DrawNodesAsCircles(
-        G=G_2,
-        pos=pos,
-        radii=node_sizes_2,
-        aspect=args.aspect,
-        alpha=args.node_alpha,
-        color=colorn,
-        ax=ax,
-    )
-    if args.show_edge_alpha == "yes":
-        for i, edge in enumerate(Edges):
-            edge.set_alpha(weights_original_2[i] / args.edge_scale)
-
-
-if args.show_se != "no":
-    labels_ends = {}
-    if args.node_type == "int":
-        start = 0
-        end = 2 ** L - 1
+    if file_name.find("match-data") != -1 or file_name.find("zero-one") != -1:
+        node_tag = "-edge-list-long"
+        node_tag2 = "-state-list-long"
+        args.write_transitions = "no"
     else:
-        start = StateToString([0] * L)
-        end = StateToString([1] * L)
-    if args.show_se == "bracket":
-        labels_ends[start] = "{}"
+        node_tag = (
+            "-edge-list-int" if args.node_type == "int" else "-edge-list-string"
+        )
+    outfile = datafile.replace("list-pord", "list-pord" + node_tag).replace(
+        ".csv", ".txt"
+    )
+    outfile2 = datafile.replace("list-pord", "list-pord" + node_tag2).replace(
+        ".csv", ".txt"
+    )
+
+    outfile_graph = os.path.dirname(args.f)
+    if len(outfile_graph) > 0:
+        outfile_graph += "/"
+    outfile_graph = (
+        outfile
+        if args.outfile_graph == None
+        else outfile_graph + args.outfile_graph
+    )
+
+
+    df = pd.read_csv(datafile, index_col=None)
+    L = max(df["feature"] + 1)
+    if args.radial_label_distance == -1:
+        args.radial_label_distance = 1 / L
+
+    args.extra_labels_routes = (
+        args.extra_labels_routes
+        if args.extra_labels_routes != None
+        else "1," + str(L - 1) + ",0"
+    )
+    if args.write_transitions != "no":
+        routes = MakeRoutes(df)
+        uts = np.random.shuffle(range(min(len(routes), int(args.tlimit))))
+        transitions = MakeTransitions(routes, uts=uts, node_type=args.node_type)
+        WriteOutTranstions(transitions, outfile)
+
+    df = pd.read_csv(outfile, index_col=None, sep=" ")
+    df2 = pd.read_csv(outfile2, index_col=None, sep=" ")
+
+    G, nt = MakeGraph(df=df, L=L)
+    G = AddNodeWeight(G, df=df2, L=L)
+    if args.arb != None:
+        B = MinimumArborescence(G)
+        G = B
+    CheckGraph(G)
+
+
+    if args.probable_paths != None:
+        if args.node_type == "int":
+            source = 0
+            target = 2 ** L - 1
+        if args.node_type == "string":
+            source = StateToString([0] * L)
+            target = StateToString([1] * L)
+        paths, df_d = k_prob_shortest_paths(
+            G=G,
+            source=source,
+            target=target,
+            p=args.probable_paths,
+            weight="inv_lcprob",
+        )
+        G_2 = MakeNewGraph(G, paths)
+        print(G_2.edges())
+        fig, ax = plt.subplots(1, 1)
+        if L < 9:
+            n_p = len(list(nx.all_simple_paths(G, source=source, target=target)))
+            ax.plot(df_d.iloc[:, 0] / n_p, df_d.loc[:, "cdf"])
+            ax.set_xlabel("Proportion of paths found")
+        else:
+            ax.plot([el for el in df_d.loc[:, "count"]], df_d.loc[:, "cdf"])
+            ax.set_xlabel("Paths found")
+        ax.set_ylim(0, 1)
+        ax.set_xscale("log")
+        ax.set_ylabel("Probability of first x paths")
+        out = outfile_graph.replace("edge-list" + node_tag, "count-cdf")
+        out = (
+            out + ".png" if out.find(".txt") == -1 else out.replace(".txt", ".png")
+        )
+        plt.savefig(out, dpi=300)
+
+
+    for node in G.nodes():
+        if len(G.in_edges(node)) < 1:
+            print(node)
+
+    fixed_position = MakeFixedPosition(G, L)
+
+    if args.layout_type == "noverlap":
+        node_sizes = CalculateNodeSizes(
+            G,
+            node_scale_exponent=args.node_scale_exponent,
+            node_scale=args.node_scale,
+            nt=nt,
+        )
+        node_sizes_d = dict(zip(G.nodes(), node_sizes))
+        gps = GroupPos(fixed_position, L=L)
+        fixed_positions, node_sizes_d = Noverlap(
+            G=G,
+            pos=fixed_position,
+            gpos=gps,
+            node_sizes=node_sizes_d,
+            node_scale_exponent=0.5,
+            space_to_diam=args.noverlap_space,
+        )
+        node_sizes = [node_sizes_d[node] for node in G.nodes()]
+
+    if args.layout_type == "spring":
+        gps = GroupPos(fixed_position, L)
+        fixed_positions = AdjustGroupPos(
+            fixed_position, L, gps, gamma=args.gamma, gap_type=args.gap_type
+        )
+        node_sizes = CalculateNodeSizes(
+            G=G,
+            node_normalise=args.node_normalise,
+            node_scale_exponent=args.node_scale_exponent * 0.5,
+            node_scale=args.node_scale * (2 / L) * (1 / args.max_width),
+            nt=nt,
+        )
+
+        node_sizes_d = dict(zip(G.nodes(), node_sizes))
+
+    if args.layout_type == "cube":
+        a = 1
+        b = 1 / 3
+        fixed_positions = {
+            0: (-1, 0),
+            1: (-b, 2 * b),
+            2: (-b, 0),
+            4: (-b, -2 * b),
+            3: (b, 2 * b),
+            5: (b, 0),
+            6: (b, -2 * b),
+            7: (1, 0),
+        }
+        node_sizes = CalculateNodeSizes(
+            G=G,
+            node_normalise=args.node_normalise,
+            node_scale_exponent=args.node_scale_exponent * 0.5,
+            node_scale=args.node_scale * (2 / L) * (1 / args.max_width),
+            nt=nt,
+        )
+
+        node_sizes_d = dict(zip(G.nodes(), node_sizes))
+
+
+    fixed_nodes = fixed_positions.keys()
+    nodes = G.nodes()
+    edges = G.edges()
+    if args.edge_normalise == 1.0:
+        weights = [G[u][v]["weight"] for u, v in edges]
+        if args.probable_paths != None:
+            weights_2 = [G_2[u][v]["weight"] for u, v in G_2.edges()]
     else:
-        labels_ends[start] = "no\nfeatures"
-        labels_ends[end] = "all\nfeatures"
-    if args.show_se != "bracket":
-        nx.draw_networkx_labels(
+        weights = []
+        for u, v in edges:
+            if args.node_type == "int":
+                ones = BinFromInt(u, L).count(1)
+            else:
+                ones = StateToString(u).count(1)
+            weights.append(
+                (G[u][v]["weight"] / nt) / (1 / ncr(L, ones) * 1 / (L - ones)) * nt
+            )
+        if args.probable_paths != None:
+            weights_2 = []
+            for u, v in G_2.edges():
+                if args.node_type == "int":
+                    ones = BinFromInt(u, L).count(1)
+                else:
+                    ones = StateToString(u).count(1)
+                weights_2.append(
+                    (G_2[u][v]["weight"] / nt)
+                    / (1 / ncr(L, ones) * 1 / (L - ones))
+                    * nt
+                )
+
+
+    weights_original = Adjust(
+        weights, float(args.edge_alpha), float(args.edge_scale)
+    )
+    weights = Adjust(
+        weights, float(args.edge_scale_exponent), float(args.edge_scale)
+    )
+    if args.probable_paths != None:
+        weights_original_2 = Adjust(
+            weights_2, float(args.edge_alpha), float(args.edge_scale)
+        )
+        weights_2 = Adjust(
+            weights_2, float(args.edge_scale_exponent), float(args.edge_scale)
+        )
+
+
+    # Plotting
+    old_colorblind = [
+        "#0072b2",
+        "#009e73",
+        "#d55e00",
+        "#cc79a7",
+        "#f0e442",
+        "#56e4b9",
+    ]
+    plt.clf()
+    plt.style.use("seaborn-colorblind")
+    ncolors_old = 6
+    ncolors = ncolors_old
+    pal = sns.color_palette("colorblind", ncolors_old)
+    pal = sns.color_palette(old_colorblind)
+
+    fig = plt.figure()
+    fig.set_size_inches(args.width, args.width * args.aspect)
+    ax = fig.add_subplot(111)
+    pos = fixed_positions
+    colors = MakeColors(weights)
+    if args.node_normalise == 1.0 or args.edge_normalise == 1.0:
+        colorn = pal[0]
+    else:
+        colorn = pal[0]
+        
+
+    mw = max(node_sizes) / ((2 / L) * (1 / args.max_width)) * 8 / L
+    if args.probable_paths != None:
+        node_sizes_2 = [node_sizes_d[el] for el in G_2.nodes()]
+
+
+    if args.probable_paths == None:
+        widths = [el * mw for el in weights]
+        Edges = nx.draw_networkx_edges(
             G,
             pos,
-            labels_ends,
-            font_size=args.labels_fontsize,
-            font_color="black",
+            edgelist=edges,
+            width=widths,
+            edge_color=args.edge_color,
+            arrowstyle=mpl.patches.ArrowStyle("-"),
+            ax=ax,
+            node_size=0,
         )
+
+        Nodes = DrawNodesAsCircles(
+            G=G,
+            pos=pos,
+            radii=node_sizes,
+            aspect=args.aspect,
+            alpha=args.node_alpha,
+            color=colorn,
+            ax=ax,
+        )
+        if args.show_edge_alpha == "yes":
+            for i, edge in enumerate(Edges):
+                edge.set_alpha(weights_original[i] / args.edge_scale)
+
     else:
-        if args.show_se.lower() != "none":
+        widths_2 = [el * mw for el in weights_2]
+        Edges = nx.draw_networkx_edges(
+            G_2,
+            pos,
+            edgelist=G_2.edges(),
+            width=widths_2,
+            edge_color=args.edge_color,
+            ax=ax,
+            arrowstyle=mpl.patches.ArrowStyle("-"),
+            node_size=0,
+        )
+
+        Nodes = DrawNodesAsCircles(
+            G=G_2,
+            pos=pos,
+            radii=node_sizes_2,
+            aspect=args.aspect,
+            alpha=args.node_alpha,
+            color=colorn,
+            ax=ax,
+        )
+        if args.show_edge_alpha == "yes":
+            for i, edge in enumerate(Edges):
+                edge.set_alpha(weights_original_2[i] / args.edge_scale)
+
+
+    if args.show_se != "no":
+        labels_ends = {}
+        if args.node_type == "int":
+            start = 0
+            end = 2 ** L - 1
+        else:
+            start = StateToString([0] * L)
+            end = StateToString([1] * L)
+        if args.show_se == "bracket":
+            labels_ends[start] = "{}"
+        else:
+            labels_ends[start] = "no\nfeatures"
+            labels_ends[end] = "all\nfeatures"
+        if args.show_se != "bracket":
             nx.draw_networkx_labels(
                 G,
                 pos,
                 labels_ends,
                 font_size=args.labels_fontsize,
-                font_color="white",
-            )
-
-labels = {}
-top_sizes = MakeTopSizesByOnes(G, node_sizes)
-if args.extra_labels != None:
-    if args.labels != None:
-        state_labels = [
-            str(el)
-            for el in list(
-                pd.read_csv(args.labels, header=None, index_col=None).iloc[
-                    :, 1
-                ]
-            )
-        ]
-    else:
-        state_labels = range(L)
-    ns = [int(el) for el in (args.extra_labels).split(",")]
-    lim = ns[-1]
-    ns = ns[:-1]
-    for i, n in enumerate(ns):
-        count = 0
-        for j, el in enumerate(top_sizes[n]):
-            if j >= lim:
-                break
-            node = el[0]
-            if args.node_type == "int":
-                state = BinFromInt(node, L)
-            else:
-                state = StringToState(node)
-            label = []
-            for k, el in enumerate(state):
-                if el == 1:
-                    label.append(str(state_labels[k]))
-            label = "{" + (",".join(label)) + "}"
-            labels[node] = label
-
-if args.extra_labels_routes != None:
-    if int(args.extra_labels_routes.split(",")[1]) == 0:
-        args.extra_labels_routes = None
-
-print(args.extra_labels_routes)
-
-if args.extra_labels_routes != None:
-    if args.labels != None:
-        state_labels = [
-            str(el)
-            for el in list(
-                pd.read_csv(args.labels, header=None, index_col=None).iloc[
-                    :, 1
-                ]
-            )
-        ]
-    else:
-        state_labels = [str(i + 1) for i in range(L)]
-    if args.label_type == "greedy":
-        big_labels, label_colours = MakeGreedyLabelSet(
-            state_labels=state_labels, colormap=args.colormap
-        )
-    else:
-        if args.label_type == "probable":
-            big_labels, label_colours, paths = MakeProbableLabelSet(
-                G=G, state_labels=state_labels, colormap=args.colormap
+                font_color="black",
             )
         else:
-            if (
-                args.label_type == "probable_data"
-                or args.label_type == "greedy_data"
-                or args.label_type == "None"
-            ) and args.transition_data != None:
-                big_labels, label_colours, paths = MakeProbableLabelSetData(
-                    G=G,
-                    state_labels=state_labels,
-                    colormap=args.colormap,
-                    transition_data=args.transition_data,
-                    L=L,
-                )
-            if args.label_type == "greedy_data":
-                big_labels, label_colours = MakeGreedyLabelSet(
-                    state_labels=state_labels, colormap=args.colormap
+            if args.show_se.lower() != "none":
+                nx.draw_networkx_labels(
+                    G,
+                    pos,
+                    labels_ends,
+                    font_size=args.labels_fontsize,
+                    font_color="white",
                 )
 
-            if (
-                args.label_type == "probable_data"
-                or args.label_type == "greedy_data"
-                or args.label_type == "None"
-            ) and args.transition_data != None:
-                G_3 = nx.DiGraph()
-                for path in paths:
-                    el1 = path[0]
-                    el2 = path[-1]
-                    if el1 in G.nodes():
-                        G_3.add_node(el1)
-                    if el2 in G.nodes():
-                        G_3.add_node(el2)
-                node_sizes_3 = [node_sizes_d[el] for el in G_3.nodes()]
-                print("Data N:", len(G_3.nodes()))
-                Nodes_3 = DrawNodesAsCircles(
-                    G=G_3,
-                    pos=pos,
-                    radii=node_sizes_3,
-                    aspect=args.aspect,
-                    alpha=args.node_alpha,
-                    color=pal[2],
-                    ax=ax,
+    labels = {}
+    top_sizes = MakeTopSizesByOnes(G, node_sizes)
+    if args.extra_labels != None:
+        if args.labels != None:
+            state_labels = [
+                str(el)
+                for el in list(
+                    pd.read_csv(args.labels, header=None, index_col=None).iloc[
+                        :, 1
+                    ]
                 )
+            ]
+        else:
+            state_labels = range(L)
+        ns = [int(el) for el in (args.extra_labels).split(",")]
+        lim = ns[-1]
+        ns = ns[:-1]
+        for i, n in enumerate(ns):
+            count = 0
+            for j, el in enumerate(top_sizes[n]):
+                if j >= lim:
+                    break
+                node = el[0]
+                if args.node_type == "int":
+                    state = BinFromInt(node, L)
+                else:
+                    state = StringToState(node)
+                label = []
+                for k, el in enumerate(state):
+                    if el == 1:
+                        label.append(str(state_labels[k]))
+                label = "{" + (",".join(label)) + "}"
+                labels[node] = label
 
-    if args.label_type != "None":
-        if args.extra_labels_routes != None:
-            keep_els = [int(el) for el in args.extra_labels_routes.split(",")]
-            keep_els = keep_els[2:] if len(keep_els) > 2 else []
+    if args.extra_labels_routes != None:
+        if int(args.extra_labels_routes.split(",")[1]) == 0:
+            args.extra_labels_routes = None
 
-        for i, el in enumerate(big_labels):
-            bbox2 = dict(
-                facecolor="lightgrey", edgecolor="none", boxstyle="round"
+    print(args.extra_labels_routes)
+
+    if args.extra_labels_routes != None:
+        if args.labels != None:
+            state_labels = [
+                str(el)
+                for el in list(
+                    pd.read_csv(args.labels, header=None, index_col=None).iloc[
+                        :, 1
+                    ]
+                )
+            ]
+        else:
+            state_labels = [str(i + 1) for i in range(L)]
+        if args.label_type == "greedy":
+            big_labels, label_colours = MakeGreedyLabelSet(
+                state_labels=state_labels, colormap=args.colormap
             )
-            if i not in keep_els and len(keep_els) > 1:
-                continue
-            for node_i, node in enumerate(el):
-                lab = el[node]
-                pos_lab = pos[node]
-                theta = np.arccos(-pos_lab[0])
-                lab_abs = args.radial_label_distance
-                if args.alternate_label == "no":
-                    ysign = 1 if pos_lab[1] > 0 else -1
-                    xsign = 1
-                else:
-                    if args.alternate_label == "yes":
-                        ysign = (
-                            1
-                            if node_i % 2 == (0 if pos_lab[1] > 0 else 1)
-                            else -1
-                        )
-                        xsign = 1 if node_i % 2 == 0 else -1
-                    else:
-                        if args.alternate_label == "1":
-                            ysign = 1 if pos_lab[1] > 0 and i != 1 else -1
-                            xsign = 1
-
-                if args.extra == "yes":
-                    extra = (1 - np.abs(pos_lab[0])) ** 4
-                else:
-                    extra = 0
-                text_lab = (
-                    pos_lab[0] - xsign * np.cos(theta) * lab_abs,
-                    pos_lab[1]
-                    + ysign * (np.sin(theta) * lab_abs * (1 + extra)),
+        else:
+            if args.label_type == "probable":
+                big_labels, label_colours, paths = MakeProbableLabelSet(
+                    G=G, state_labels=state_labels, colormap=args.colormap
                 )
-
-                if args.label_bbox == "yes":
-                    ax.annotate(
-                        text=lab,
-                        xy=pos_lab,
-                        xycoords="data",
-                        xytext=text_lab,
-                        textcoords="data",
-                        color=label_colours[i],
-                        fontsize=args.labels_fontsize,
-                        bbox=dict(
-                            boxstyle="round",
-                            facecolor="#efefef",
-                            alpha=args.bbox_alpha,
-                            edgecolor="none",
-                            zorder=-100,
-                        ),
-                        horizontalalignment="center",
-                        verticalalignment="center",
+            else:
+                if (
+                    args.label_type == "probable_data"
+                    or args.label_type == "greedy_data"
+                    or args.label_type == "None"
+                ) and args.transition_data != None:
+                    big_labels, label_colours, paths = MakeProbableLabelSetData(
+                        G=G,
+                        state_labels=state_labels,
+                        colormap=args.colormap,
+                        transition_data=args.transition_data,
+                        L=L,
+                    )
+                if args.label_type == "greedy_data":
+                    big_labels, label_colours = MakeGreedyLabelSet(
+                        state_labels=state_labels, colormap=args.colormap
                     )
 
-                    ax.annotate(
-                        text="",
-                        xy=pos_lab,
-                        xycoords="data",
-                        xytext=text_lab,
-                        textcoords="data",
-                        color=label_colours[i],
-                        fontsize=args.labels_fontsize,
-                        bbox=dict(
-                            boxstyle="round",
-                            facecolor="none",
-                            alpha=0.5,
-                            edgecolor="none",
-                            zorder=-100,
-                        ),
-                        arrowprops=dict(
-                            arrowstyle="-",
-                            color=label_colours[i],
-                            lw=0.2,
-                            connectionstyle="arc3,rad=0.",
-                            shrinkA=0,
-                            shrinkB=0,
-                            alpha=0.5,
-                        ),
-                        horizontalalignment="center",
-                        verticalalignment="center",
-                        zorder=-200,
+                if (
+                    args.label_type == "probable_data"
+                    or args.label_type == "greedy_data"
+                    or args.label_type == "None"
+                ) and args.transition_data != None:
+                    G_3 = nx.DiGraph()
+                    for path in paths:
+                        el1 = path[0]
+                        el2 = path[-1]
+                        if el1 in G.nodes():
+                            G_3.add_node(el1)
+                        if el2 in G.nodes():
+                            G_3.add_node(el2)
+                    node_sizes_3 = [node_sizes_d[el] for el in G_3.nodes()]
+                    print("Data N:", len(G_3.nodes()))
+                    Nodes_3 = DrawNodesAsCircles(
+                        G=G_3,
+                        pos=pos,
+                        radii=node_sizes_3,
+                        aspect=args.aspect,
+                        alpha=args.node_alpha,
+                        color=pal[2],
+                        ax=ax,
                     )
-                else:
-                    if args.label_bbox == "no":
+
+        if args.label_type != "None":
+            if args.extra_labels_routes != None:
+                keep_els = [int(el) for el in args.extra_labels_routes.split(",")]
+                keep_els = keep_els[2:] if len(keep_els) > 2 else []
+
+            for i, el in enumerate(big_labels):
+                bbox2 = dict(
+                    facecolor="lightgrey", edgecolor="none", boxstyle="round"
+                )
+                if i not in keep_els and len(keep_els) > 1:
+                    continue
+                for node_i, node in enumerate(el):
+                    lab = el[node]
+                    pos_lab = pos[node]
+                    theta = np.arccos(-pos_lab[0])
+                    lab_abs = args.radial_label_distance
+                    if args.alternate_label == "no":
+                        ysign = 1 if pos_lab[1] > 0 else -1
+                        xsign = 1
+                    else:
+                        if args.alternate_label == "yes":
+                            ysign = (
+                                1
+                                if node_i % 2 == (0 if pos_lab[1] > 0 else 1)
+                                else -1
+                            )
+                            xsign = 1 if node_i % 2 == 0 else -1
+                        else:
+                            if args.alternate_label == "1":
+                                ysign = 1 if pos_lab[1] > 0 and i != 1 else -1
+                                xsign = 1
+
+                    if args.extra == "yes":
+                        extra = (1 - np.abs(pos_lab[0])) ** 4
+                    else:
+                        extra = 0
+                    text_lab = (
+                        pos_lab[0] - xsign * np.cos(theta) * lab_abs,
+                        pos_lab[1]
+                        + ysign * (np.sin(theta) * lab_abs * (1 + extra)),
+                    )
+
+                    if args.label_bbox == "yes":
                         ax.annotate(
                             text=lab,
                             xy=pos_lab,
                             xycoords="data",
-                            xytext=pos_lab,
+                            xytext=text_lab,
                             textcoords="data",
                             color=label_colours[i],
                             fontsize=args.labels_fontsize,
+                            bbox=dict(
+                                boxstyle="round",
+                                facecolor="#efefef",
+                                alpha=args.bbox_alpha,
+                                edgecolor="none",
+                                zorder=-100,
+                            ),
                             horizontalalignment="center",
                             verticalalignment="center",
                         )
 
+                        ax.annotate(
+                            text="",
+                            xy=pos_lab,
+                            xycoords="data",
+                            xytext=text_lab,
+                            textcoords="data",
+                            color=label_colours[i],
+                            fontsize=args.labels_fontsize,
+                            bbox=dict(
+                                boxstyle="round",
+                                facecolor="none",
+                                alpha=0.5,
+                                edgecolor="none",
+                                zorder=-100,
+                            ),
+                            arrowprops=dict(
+                                arrowstyle="-",
+                                color=label_colours[i],
+                                lw=0.2,
+                                connectionstyle="arc3,rad=0.",
+                                shrinkA=0,
+                                shrinkB=0,
+                                alpha=0.5,
+                            ),
+                            horizontalalignment="center",
+                            verticalalignment="center",
+                            zorder=-200,
+                        )
+                    else:
+                        if args.label_bbox == "no":
+                            ax.annotate(
+                                text=lab,
+                                xy=pos_lab,
+                                xycoords="data",
+                                xytext=pos_lab,
+                                textcoords="data",
+                                color=label_colours[i],
+                                fontsize=args.labels_fontsize,
+                                horizontalalignment="center",
+                                verticalalignment="center",
+                            )
 
-if args.grid == "no":
-    if args.xaxis.lower() == "yes":
-        ax.spines["right"].set_visible(False)
-        ax.spines["top"].set_visible(False)
-        ax.spines["left"].set_visible(False)
-        ax.axes.get_xaxis().set_visible(True)
-        xticks = [-1 + 2 * i / (L) for i in range(0, L + 1, args.xevery)]
-        xticklabels = range(0, L + 1, args.xevery)
-        ax.set_xticks(xticks)
-        ax.set_xticklabels(xticklabels, fontsize=args.fontsize)
-        ax.xaxis.set_ticks_position("bottom")
-        ax.get_yaxis().set_ticks([])
-        ax.get_yaxis().set_visible(False)
-        ax.set_xlabel(args.xlabel, fontsize=args.fontsize)
-    else:
-        plt.grid("off")
 
-axlim = args.axlim
-axlim_y = axlim / args.aspect
-ax.set_xlim((-axlim, axlim))
-ax.set_ylim((-axlim_y, axlim_y))
-if args.layout_type != "cube":
-    ax.set_aspect(aspect=args.aspect, adjustable="datalim")
+    if args.grid == "no":
+        if args.xaxis.lower() == "yes":
+            ax.spines["right"].set_visible(False)
+            ax.spines["top"].set_visible(False)
+            ax.spines["left"].set_visible(False)
+            ax.axes.get_xaxis().set_visible(True)
+            xticks = [-1 + 2 * i / (L) for i in range(0, L + 1, args.xevery)]
+            xticklabels = range(0, L + 1, args.xevery)
+            ax.set_xticks(xticks)
+            ax.set_xticklabels(xticklabels, fontsize=args.fontsize)
+            ax.xaxis.set_ticks_position("bottom")
+            ax.get_yaxis().set_ticks([])
+            ax.get_yaxis().set_visible(False)
+            ax.set_xlabel(args.xlabel, fontsize=args.fontsize)
+        else:
+            plt.grid("off")
 
-
-def MakeLabel(X, app):
-    if X.find(".txt") != -1:
-        return X.replace(".txt", app)
-    else:
-        return X + app
+    axlim = args.axlim
+    axlim_y = axlim / args.aspect
+    ax.set_xlim((-axlim, axlim))
+    ax.set_ylim((-axlim_y, axlim_y))
+    if args.layout_type != "cube":
+        ax.set_aspect(aspect=args.aspect, adjustable="datalim")
 
 
-if args.out_type == "pdf":
-    pdf = PdfPages(MakeLabel(outfile_graph, ".pdf"))
-    if args.bbox == "tight":
-        pdf.savefig(bbox_inches="tight", figure=fig)
-    else:
-        pdf.savefig(figure=fig)
-    pdf.close()
-if args.out_type == "png":
-    if args.bbox == "tight":
-        fig.savefig(
-            MakeLabel(outfile_graph, ".png"), dpi=600, bbox_inches="tight"
-        )
-    else:
-        fig.savefig(MakeLabel(outfile_graph, ".png"), dpi=600)
-if args.svg.lower() == "yes":
-    fig.savefig(MakeLabel(outfile_graph, ".svg"))
+    def MakeLabel(X, app):
+        if X.find(".txt") != -1:
+            return X.replace(".txt", app)
+        else:
+            return X + app
+
+
+    if args.out_type == "pdf":
+        pdf = PdfPages(MakeLabel(outfile_graph, ".pdf"))
+        if args.bbox == "tight":
+            pdf.savefig(bbox_inches="tight", figure=fig)
+        else:
+            pdf.savefig(figure=fig)
+        pdf.close()
+    if args.out_type == "png":
+        if args.bbox == "tight":
+            fig.savefig(
+                MakeLabel(outfile_graph, ".png"), dpi=600, bbox_inches="tight"
+            )
+        else:
+            fig.savefig(MakeLabel(outfile_graph, ".png"), dpi=600)
+    if args.svg.lower() == "yes":
+        fig.savefig(MakeLabel(outfile_graph, ".svg"))
+
+
+if __name__ == "__main__":
+    main()

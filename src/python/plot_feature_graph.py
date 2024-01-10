@@ -49,6 +49,7 @@ parser.add_argument(
 )
 parser.add_argument("-any_time", required=False, default=0, type=int)
 parser.add_argument("-end", required=False, default="no", type=str)
+
 args = parser.parse_args()
 
 # Print args used in script after parsing
@@ -246,191 +247,194 @@ def PlotGraph(
     RemoveAxes(ax)
     return
 
-
-prefix = ""
-args.outfile = (
-    prefix
-    + "forwards-feature_graph_"
-    + args.data_type
-    + "_"
-    + args.prob_type
-    + "_"
-    + args.layout_type
-)
-args.transitions = (
-    prefix + "forwards_list-pord-trajectory-" + args.data_type + ".txt"
-)
-
-font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
-mpl.rc("font", **font)
-
-state_labels = [
-    str(el)
-    for el in list(
-        pd.read_csv(args.labels, header=None, index_col=None).iloc[:, 1]
+def main():
+    prefix = ""
+    args.outfile = (
+        prefix
+        + "forwards-feature_graph_"
+        + args.data_type
+        + "_"
+        + args.prob_type
+        + "_"
+        + args.layout_type
     )
-]
-state_labels = ["root"] + state_labels
-if args.end == "yes":
-    state_labels = state_labels + ["end"]
+    args.transitions = (
+        prefix + "forwards_list-pord-trajectory-" + args.data_type + ".txt"
+    )
 
-n_ = 0
-pis = LoadPi(args.f, N=100)
-L = len(pis[0][0])
+    font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+    mpl.rc("font", **font)
 
-df = pd.read_csv(args.transitions, index_col=None, header=None)
-
-feature_transitions = MakeFeatureAdjacencyJoint(df, L)
-if args.end != "yes":
-    feature_transitions = [
-        el[:-1] for i, el in enumerate(feature_transitions[:-1])
+    state_labels = [
+        str(el)
+        for el in list(
+            pd.read_csv(args.labels, header=None, index_col=None).iloc[:, 1]
+        )
     ]
-if args.prob_type == "conditional":
-    feature_transitions = [
-        (el / np.sum(el) if np.sum(el) > 0 else el)
-        for el in feature_transitions
+    state_labels = ["root"] + state_labels
+    if args.end == "yes":
+        state_labels = state_labels + ["end"]
+
+    n_ = 0
+    pis = LoadPi(args.f, N=100)
+    L = len(pis[0][0])
+
+    df = pd.read_csv(args.transitions, index_col=None, header=None)
+
+    feature_transitions = MakeFeatureAdjacencyJoint(df, L)
+    if args.end != "yes":
+        feature_transitions = [
+            el[:-1] for i, el in enumerate(feature_transitions[:-1])
+        ]
+    if args.prob_type == "conditional":
+        feature_transitions = [
+            (el / np.sum(el) if np.sum(el) > 0 else el)
+            for el in feature_transitions
+        ]
+
+    G = nx.DiGraph()
+    node_sizes_d = {}
+    for i, label in enumerate(state_labels):
+        node_sizes_d[label] = 1
+    for i, label in enumerate(state_labels):
+        G.add_node(label, ns=node_sizes_d[label])
+
+    for i, el1 in enumerate(feature_transitions):
+        for j, el2 in enumerate(el1):
+            if abs(el2 - 0.0) > 1e-10:
+                G.add_edge(
+                    state_labels[i],
+                    state_labels[j],
+                    weight=el2,
+                    invweight=abs(-np.log(el2)),
+                )
+
+    s = args.s
+    connection_style = args.connection_style
+    node_sizes = [G.nodes[node]["ns"] for node in G.nodes()]
+    node_sizes = [s * el / max(node_sizes) for el in node_sizes]
+    weights = [G.edges[edge]["weight"] for edge in G.edges()]
+
+    max_weight = max([el for el in weights])
+    colors = MakeColors(weights, minima_=0, maxima_=1, colormap="Blues")
+    widths = [
+        (
+            (el / max_weight) ** args.edge_width_exponent * args.edge_width
+            if el > 0
+            else 0
+        )
+        for el in weights
     ]
 
-G = nx.DiGraph()
-node_sizes_d = {}
-for i, label in enumerate(state_labels):
-    node_sizes_d[label] = 1
-for i, label in enumerate(state_labels):
-    G.add_node(label, ns=node_sizes_d[label])
+    if args.layout_type == "circular":
+        pos = {}
+        for node in G.nodes():
+            try:
+                el = int(node)
+                angle = 2 * np.pi * el / (L + 1)
+            except:
+                if node == "root":
+                    angle = 0
+                if node == "end":
+                    pos[node] = (0, 0)
+                    continue
+                if node != "root" and node != "end":
+                    pos = nx.circular_layout(G)
+                    break
+            pos[node] = ((L + 1) * np.sin(angle), (L + 1) * np.cos(angle))
 
-for i, el1 in enumerate(feature_transitions):
-    for j, el2 in enumerate(el1):
-        if abs(el2 - 0.0) > 1e-10:
-            G.add_edge(
-                state_labels[i],
-                state_labels[j],
-                weight=el2,
-                invweight=abs(-np.log(el2)),
-            )
+    if args.layout_type == "dot":
+        pos = graphviz_layout(G, prog="dot")
 
-s = args.s
-connection_style = args.connection_style
-node_sizes = [G.nodes[node]["ns"] for node in G.nodes()]
-node_sizes = [s * el / max(node_sizes) for el in node_sizes]
-weights = [G.edges[edge]["weight"] for edge in G.edges()]
-
-max_weight = max([el for el in weights])
-colors = MakeColors(weights, minima_=0, maxima_=1, colormap="Blues")
-widths = [
-    (
-        (el / max_weight) ** args.edge_width_exponent * args.edge_width
-        if el > 0
-        else 0
+    plt.clf()
+    plt.style.use("seaborn-colorblind")
+    fig = plt.figure()
+    fig.set_size_inches(args.width, args.width)
+    ax2 = fig.add_subplot(111)
+    ax2.set_aspect(1)
+    PlotGraph(
+        G=G,
+        ax=ax2,
+        constyle=connection_style,
+        pos=pos,
+        node_size=args.node_size,
+        edge_width=args.edge_width,
+        font_size=args.graph_fontsize,
     )
-    for el in weights
-]
-
-if args.layout_type == "circular":
-    pos = {}
-    for node in G.nodes():
-        try:
-            el = int(node)
-            angle = 2 * np.pi * el / (L + 1)
-        except:
-            if node == "root":
-                angle = 0
-            if node == "end":
-                pos[node] = (0, 0)
-                continue
-            if node != "root" and node != "end":
-                pos = nx.circular_layout(G)
-                break
-        pos[node] = ((L + 1) * np.sin(angle), (L + 1) * np.cos(angle))
-
-if args.layout_type == "dot":
-    pos = graphviz_layout(G, prog="dot")
-
-plt.clf()
-plt.style.use("seaborn-colorblind")
-fig = plt.figure()
-fig.set_size_inches(args.width, args.width)
-ax2 = fig.add_subplot(111)
-ax2.set_aspect(1)
-PlotGraph(
-    G=G,
-    ax=ax2,
-    constyle=connection_style,
-    pos=pos,
-    node_size=args.node_size,
-    edge_width=args.edge_width,
-    font_size=args.graph_fontsize,
-)
-if args.outfile_type == "pdf":
-    pdf = PdfPages(args.outfile + "_graph.pdf")
-    pdf.savefig(bbox_inches="tight", figure=fig)
-    pdf.close()
-if args.outfile_type == "png":
-    fig.savefig(
-        args.outfile + "_graph.png",
-        bbox_inches="tight",
-        dpi=600,
-        transparent=True,
-    )
+    if args.outfile_type == "pdf":
+        pdf = PdfPages(args.outfile + "_graph.pdf")
+        pdf.savefig(bbox_inches="tight", figure=fig)
+        pdf.close()
+    if args.outfile_type == "png":
+        fig.savefig(
+            args.outfile + "_graph.png",
+            bbox_inches="tight",
+            dpi=600,
+            transparent=True,
+        )
 
 
-plt.clf()
-plt.style.use("seaborn-colorblind")
-fig = plt.figure(frameon=False)
-fig.set_size_inches(args.width, args.width)
-gs = gridspec.GridSpec(1, 1)
+    plt.clf()
+    plt.style.use("seaborn-colorblind")
+    fig = plt.figure(frameon=False)
+    fig.set_size_inches(args.width, args.width)
+    gs = gridspec.GridSpec(1, 1)
 
-ax = fig.add_subplot(gs[0, 0])
+    ax = fig.add_subplot(gs[0, 0])
 
-if args.heatmap == "yes" and args.bar != "yes":
-    cmap = plt.get_cmap("viridis")
-    if args.heatmap_max == None:
-        _vmax = np.amax(np.array(feature_transitions))
-    else:
-        _vmax = args.heatmap_max
-    im = ax.pcolormesh(
-        np.array(feature_transitions), cmap=cmap, vmin=0, vmax=_vmax
-    )
-    ax.invert_yaxis()
-    fig.colorbar(im, ax=ax)
-    ax.xaxis.set_ticks_position("top")
-    ax.xaxis.set_label_position("top")
-    ax.set_xticks(np.arange(0.5, len(state_labels) + 0.5, 1))
-    ax.set_xticklabels(
-        [label for label in state_labels], rotation=args.xtick_rotation
-    )
-    ax.set_yticks(np.arange(0.5, len(state_labels) + 0.5, 1))
-    ax.set_yticklabels([label for label in state_labels])
-    ax.tick_params(axis="x", which="both", bottom=False, top=False)
-    ax.tick_params(axis="y", which="both", left=False, right=False)
+    if args.heatmap == "yes" and args.bar != "yes":
+        cmap = plt.get_cmap("viridis")
+        if args.heatmap_max == None:
+            _vmax = np.amax(np.array(feature_transitions))
+        else:
+            _vmax = args.heatmap_max
+        im = ax.pcolormesh(
+            np.array(feature_transitions), cmap=cmap, vmin=0, vmax=_vmax
+        )
+        ax.invert_yaxis()
+        fig.colorbar(im, ax=ax)
+        ax.xaxis.set_ticks_position("top")
+        ax.xaxis.set_label_position("top")
+        ax.set_xticks(np.arange(0.5, len(state_labels) + 0.5, 1))
+        ax.set_xticklabels(
+            [label for label in state_labels], rotation=args.xtick_rotation
+        )
+        ax.set_yticks(np.arange(0.5, len(state_labels) + 0.5, 1))
+        ax.set_yticklabels([label for label in state_labels])
+        ax.tick_params(axis="x", which="both", bottom=False, top=False)
+        ax.tick_params(axis="y", which="both", left=False, right=False)
 
-    if args.any_time == 0:
-        if args.prob_type == "joint" and args.any_time == 0:
-            ax.set_xlabel("Next acquisition")
-        if args.prob_type == "conditional" and args.any_time == 0:
-            ax.set_xlabel("Next conditional acquisition")
-        ax.set_ylabel("Previous acquisition")
-    else:
-        ax.set_xlabel("Acquisition of Y given X previously acquired")
-        ax.set_ylabel("Previous acquisition of X")
-    ax.set_aspect("equal")
-    ax.spines["right"].set_visible(False)
-    ax.spines["top"].set_visible(False)
-    ax.spines["left"].set_visible(False)
-    ax.spines["bottom"].set_visible(False)
+        if args.any_time == 0:
+            if args.prob_type == "joint" and args.any_time == 0:
+                ax.set_xlabel("Next acquisition")
+            if args.prob_type == "conditional" and args.any_time == 0:
+                ax.set_xlabel("Next conditional acquisition")
+            ax.set_ylabel("Previous acquisition")
+        else:
+            ax.set_xlabel("Acquisition of Y given X previously acquired")
+            ax.set_ylabel("Previous acquisition of X")
+        ax.set_aspect("equal")
+        ax.spines["right"].set_visible(False)
+        ax.spines["top"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
 
-if args.outfile_type == "pdf":
-    pdf = PdfPages(args.outfile + "_adjacency.pdf")
-    pdf.savefig(bbox_inches="tight", figure=fig)
-    pdf.close()
-if args.outfile_type == "png":
-    fig.savefig(
-        args.outfile + "_adjacency.png",
-        bbox_inches="tight",
-        dpi=600,
-        transparent=True,
-    )
+    if args.outfile_type == "pdf":
+        pdf = PdfPages(args.outfile + "_adjacency.pdf")
+        pdf.savefig(bbox_inches="tight", figure=fig)
+        pdf.close()
+    if args.outfile_type == "png":
+        fig.savefig(
+            args.outfile + "_adjacency.png",
+            bbox_inches="tight",
+            dpi=600,
+            transparent=True,
+        )
 
-try:
-    write_dot(G, args.outfile + "_graph.gv")
-except:
-    pass
+    try:
+        write_dot(G, args.outfile + "_graph.gv")
+    except:
+        pass
+
+if __name__ == "__main__":
+    main()

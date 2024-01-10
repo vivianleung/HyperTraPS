@@ -70,47 +70,6 @@ parser.add_argument("-out_type", required=False, default="pdf", type=str)
 parser.add_argument("-verbose", required=False, default="yes", type=str)
 args = parser.parse_args()
 
-# See above for update
-# Axes sharing cases (also matters what normalise is...)
-# args.sharey
-# args.sharey_all
-# args.sharey_feature
-#     1. Single data: max y across all axes: sharey == "yes"
-#     2. Single data: max y for a given feature: sharey == "no"
-#     3. Double data: max y across all axes: sharey_all == "yes"
-#     4. Double data: max y across all features for each set: sharey_all == "no", sharey == "yes"
-#     5. Double data: max y across both within same feature: sharey_all == "no", sharey == "no", sharey_feature == "yes"
-#     6. Double data: max y for each data for each feature: sharey_all == "no", sharey == "no", sharey_feature == "no"
-#     7. Double data (normed to 1): max y for each data for each feature: sharey_all == "no", sharey == "no", sharey_feature == "no"
-
-
-# DEFAULT TO STYLE 3, if f2 != None, and default to same transition data
-if args.f2 != None:
-    args.aspect = 0.9
-    args.normalise = "no"
-    args.sharey_type = "feature"
-    if args.transition_data2 == None:
-        args.transition_data2 = args.transition_data
-
-if args.sharey_type == "all":
-    args.sharey = "yes"
-    args.sharey_all = "yes"
-
-if args.sharey_type == "feature":
-    args.sharey = "no"
-    args.sharey_all = "no"
-    args.sharey_feature = "yes"
-
-
-font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
-
-mpl.rc("font", **font)
-
-df = pd.read_csv(args.f, index_col=None, sep=",").astype(int)
-L = np.amax(df.values) + 1
-if args.f2 != None:
-    df2 = pd.read_csv(args.f2, index_col=None, sep=",").astype(int)
-    L = max(np.amax(df.values), np.amax(df2.values)) + 1
 
 
 # Methods to make PDFs and KDEs
@@ -245,211 +204,258 @@ def EarliestAndLatest(in_file=args.transition_data, l=L):
                     )
     return out
 
-
-# Make pdfs, kdes, maxys
-pdf, kdes, maxys = MakePdfKdeYs(df)
-ts = EarliestAndLatest(args.transition_data, l=L)
-if args.f2 != None:
-    pdf2, kdes2, maxys2 = MakePdfKdeYs(df2)
-    ts2 = EarliestAndLatest(args.transition_data2, l=L)
-
-# Make orders
-order = Order(pdf) if args.ordered == "yes" else range(L)
-if args.f2 != None:
-    order2 = Order(pdf) if args.ordered == "yes" else range(L)
-labels = GetLabels(file_name=args.labels, l=L)
-
-
-if args.verbose == "yes":
-    print("Fontsize:", args.fontsize)
-    print([np.sum(el) for el in pdf])
-    print(order)
-    print(maxys, len(maxys), min(maxys), max(maxys))
+def main():
+    # See above for update
+    # Axes sharing cases (also matters what normalise is...)
+    # args.sharey
+    # args.sharey_all
+    # args.sharey_feature
+    #     1. Single data: max y across all axes: sharey == "yes"
+    #     2. Single data: max y for a given feature: sharey == "no"
+    #     3. Double data: max y across all axes: sharey_all == "yes"
+    #     4. Double data: max y across all features for each set: sharey_all == "no", sharey == "yes"
+    #     5. Double data: max y across both within same feature: sharey_all == "no", sharey == "no", sharey_feature == "yes"
+    #     6. Double data: max y for each data for each feature: sharey_all == "no", sharey == "no", sharey_feature == "no"
+    #     7. Double data (normed to 1): max y for each data for each feature: sharey_all == "no", sharey == "no", sharey_feature == "no"
 
 
-# -------------------------------------------
-# PLOTTING
-# -------------------------------------------
-fig, ax = plt.subplots(L, sharex=True)
-fig.set_size_inches(args.width, args.aspect * args.width)
-xs = np.arange(0, L, 1)
-start = -args.bw * args.cut
-end = -start + L - 1
-if args.verbose == "yes":
-    print(start, end)
-grid = np.linspace(start, end, args.kde_points)
-if args.f2 == None:
-    if args.sharey == "yes":
-        ylims = [(0, max(maxys)) for _ in range(L)]
-    if args.sharey == "no":
-        ylims = [(0, maxys[i]) for i in range(L)]
-else:
-    if args.sharey_all == "yes":
-        max_all = max(max(maxys), max(maxys2))
-        ylims = [(-max_all, max_all) for _ in range(L)]
+    # DEFAULT TO STYLE 3, if f2 != None, and default to same transition data
+    if args.f2 != None:
+        args.aspect = 0.9
+        args.normalise = "no"
+        args.sharey_type = "feature"
+        if args.transition_data2 == None:
+            args.transition_data2 = args.transition_data
+
+    if args.sharey_type == "all":
+        args.sharey = "yes"
+        args.sharey_all = "yes"
+
+    if args.sharey_type == "feature":
+        args.sharey = "no"
+        args.sharey_all = "no"
+        args.sharey_feature = "yes"
+
+
+    font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+
+    mpl.rc("font", **font)
+
+    df = pd.read_csv(args.f, index_col=None, sep=",").astype(int)
+    L = np.amax(df.values) + 1
+    if args.f2 != None:
+        df2 = pd.read_csv(args.f2, index_col=None, sep=",").astype(int)
+        L = max(np.amax(df.values), np.amax(df2.values)) + 1
+
+
+    # Make pdfs, kdes, maxys
+    pdf, kdes, maxys = MakePdfKdeYs(df, l=L)
+    ts = EarliestAndLatest(args.transition_data, l=L)
+    if args.f2 != None:
+        pdf2, kdes2, maxys2 = MakePdfKdeYs(df2, l=L)
+        ts2 = EarliestAndLatest(args.transition_data2, l=L)
+
+    # Make orders
+    order = Order(pdf, l=L) if args.ordered == "yes" else range(L)
+    if args.f2 != None:
+        order2 = Order(pdf, l=L) if args.ordered == "yes" else range(L)
+    labels = GetLabels(file_name=args.labels, l=L)
+
+
+    if args.verbose == "yes":
+        print("Fontsize:", args.fontsize)
+        print([np.sum(el) for el in pdf])
+        print(order)
+        print(maxys, len(maxys), min(maxys), max(maxys))
+
+
+    # -------------------------------------------
+    # PLOTTING
+    # -------------------------------------------
+    fig, ax = plt.subplots(L, sharex=True)
+    fig.set_size_inches(args.width, args.aspect * args.width)
+    xs = np.arange(0, L, 1)
+    start = -args.bw * args.cut
+    end = -start + L - 1
+    if args.verbose == "yes":
+        print(start, end)
+    grid = np.linspace(start, end, args.kde_points)
+    if args.f2 == None:
+        if args.sharey == "yes":
+            ylims = [(0, max(maxys)) for _ in range(L)]
+        if args.sharey == "no":
+            ylims = [(0, maxys[i]) for i in range(L)]
     else:
-        if args.sharey_all == "no" and args.sharey == "yes":
-            ylims = [(-max(maxys2), max(maxys)) for _ in range(L)]
+        if args.sharey_all == "yes":
+            max_all = max(max(maxys), max(maxys2))
+            ylims = [(-max_all, max_all) for _ in range(L)]
         else:
-            if (
-                args.sharey_all == "no"
-                and args.sharey == "no"
-                and args.sharey_feature == "yes"
-            ):
-                ylims = [
-                    (-max(maxys[i], maxys2[i]), max(maxys[i], maxys2[i]))
-                    for i in range(L)
-                ]
+            if args.sharey_all == "no" and args.sharey == "yes":
+                ylims = [(-max(maxys2), max(maxys)) for _ in range(L)]
             else:
                 if (
                     args.sharey_all == "no"
                     and args.sharey == "no"
-                    and args.sharey_feature == "no"
+                    and args.sharey_feature == "yes"
                 ):
-                    ylims = [(-maxys2[i], maxys[i]) for i in range(L)]
+                    ylims = [
+                        (-max(maxys[i], maxys2[i]), max(maxys[i], maxys2[i]))
+                        for i in range(L)
+                    ]
+                else:
+                    if (
+                        args.sharey_all == "no"
+                        and args.sharey == "no"
+                        and args.sharey_feature == "no"
+                    ):
+                        ylims = [(-maxys2[i], maxys[i]) for i in range(L)]
 
-# Pad limits
-pad_factor = 1 / (1 - args.pad)
-ylims = [
-    (ylims[i][0] * pad_factor, ylims[i][1] * pad_factor)
-    for i in range(len(ylims))
-]
+    # Pad limits
+    pad_factor = 1 / (1 - args.pad)
+    ylims = [
+        (ylims[i][0] * pad_factor, ylims[i][1] * pad_factor)
+        for i in range(len(ylims))
+    ]
 
-if args.verbose == "yes":
-    for i, lim in enumerate(ylims):
-        print(lim, max(pdf[i, :]))
+    if args.verbose == "yes":
+        for i, lim in enumerate(ylims):
+            print(lim, max(pdf[i, :]))
 
-for i in range(L):
-    ax[i].bar(xs, pdf[order[i], :], alpha=args.bar_alpha, color="C0", lw=0)
-    if args.kde == "yes":
-        ax[i].fill_between(
-            grid, 0, kdes[order[i]], alpha=args.kde_alpha, color="C0", lw=0
-        )
-    if args.f2 != None:
-        ax[i].bar(
-            xs, -pdf2[order[i], :], alpha=args.bar_alpha, color="C2", lw=0
-        )
+    for i in range(L):
+        ax[i].bar(xs, pdf[order[i], :], alpha=args.bar_alpha, color="C0", lw=0)
         if args.kde == "yes":
             ax[i].fill_between(
-                grid,
-                -kdes2[order[i]],
-                0,
-                alpha=args.kde_alpha,
-                color="C2",
+                grid, 0, kdes[order[i]], alpha=args.kde_alpha, color="C0", lw=0
+            )
+        if args.f2 != None:
+            ax[i].bar(
+                xs, -pdf2[order[i], :], alpha=args.bar_alpha, color="C2", lw=0
+            )
+            if args.kde == "yes":
+                ax[i].fill_between(
+                    grid,
+                    -kdes2[order[i]],
+                    0,
+                    alpha=args.kde_alpha,
+                    color="C2",
+                    lw=0,
+                )
+        if args.transition_data != None and args.transition_data2 == None:
+            ax[i].axvspan(
+                xmin=-0.5,
+                xmax=ts[order[i]][0] - 0.5,
+                ymin=0,
+                ymax=1,
+                color=args.greyregion,
+                zorder=-1,
                 lw=0,
             )
-    if args.transition_data != None and args.transition_data2 == None:
-        ax[i].axvspan(
-            xmin=-0.5,
-            xmax=ts[order[i]][0] - 0.5,
-            ymin=0,
-            ymax=1,
-            color=args.greyregion,
-            zorder=-1,
-            lw=0,
-        )
-        ax[i].axvspan(
-            xmin=ts[order[i]][1] - 0.5,
-            xmax=L - 0.5,
-            ymin=0,
-            ymax=1,
-            color=args.greyregion,
-            zorder=-1,
-            lw=0,
-        )
-    if args.transition_data != None and args.transition_data2 != None:
-        ax[i].axvspan(
-            xmin=-0.5,
-            xmax=ts[order[i]][0] - 0.5,
-            ymin=0.5,
-            ymax=1,
-            color=args.greyregion,
-            zorder=-1,
-            lw=0,
-        )
-        ax[i].axvspan(
-            xmin=ts[order[i]][1] - 0.5,
-            xmax=L - 0.5,
-            ymin=0.5,
-            ymax=1,
-            color=args.greyregion,
-            zorder=-1,
-            lw=0,
-        )
-        ax[i].axvspan(
-            xmin=-0.5,
-            xmax=ts2[order[i]][0] - 0.5,
-            ymin=0,
-            ymax=0.5,
-            color=args.greyregion,
-            zorder=-1,
-            lw=0,
-        )
-        ax[i].axvspan(
-            xmin=ts2[order[i]][1] - 0.5,
-            xmax=L - 0.5,
-            ymin=0,
-            ymax=0.5,
-            color=args.greyregion,
-            zorder=-1,
-            lw=0,
-        )
-
-# Adjust the subplot properties:
-# Remove all axes ticks
-# Remove all borders
-for i in range(L):
-    ax[i].spines["right"].set_visible(False)
-    ax[i].spines["top"].set_visible(False)
-    ax[i].spines["left"].set_visible(False)
-    ax[i].spines["bottom"].set_visible(False)
-    ax[i].set_yticks([])
-    ax[i].set_yticklabels([])
-    if args.f2 == None:
-        ax[i].set_ylabel(
-            labels[order[i]],
-            rotation="horizontal",
-            ha="right",
-            va="baseline",
-            y=0.0,
-        )
-    else:
-        ax[i].set_ylabel(
-            labels[order[i]], rotation="horizontal", ha="right", va="center"
-        )
-
-    ax[i].set_ylim(ylims[order[i]])
-
-    # Horizontal axis
-    if args.haxis == "yes":
-        ax[i].axhline(0, xmin=0, xmax=L, lw=0.25, color="dimgrey", zorder=-2)
-    else:
-        if args.haxis == "scaled":
-            ax[i].axhline(
-                0, xmin=0, xmax=L, lw=0.25 * 20 / L, color="dimgrey", zorder=-2
+            ax[i].axvspan(
+                xmin=ts[order[i]][1] - 0.5,
+                xmax=L - 0.5,
+                ymin=0,
+                ymax=1,
+                color=args.greyregion,
+                zorder=-1,
+                lw=0,
+            )
+        if args.transition_data != None and args.transition_data2 != None:
+            ax[i].axvspan(
+                xmin=-0.5,
+                xmax=ts[order[i]][0] - 0.5,
+                ymin=0.5,
+                ymax=1,
+                color=args.greyregion,
+                zorder=-1,
+                lw=0,
+            )
+            ax[i].axvspan(
+                xmin=ts[order[i]][1] - 0.5,
+                xmax=L - 0.5,
+                ymin=0.5,
+                ymax=1,
+                color=args.greyregion,
+                zorder=-1,
+                lw=0,
+            )
+            ax[i].axvspan(
+                xmin=-0.5,
+                xmax=ts2[order[i]][0] - 0.5,
+                ymin=0,
+                ymax=0.5,
+                color=args.greyregion,
+                zorder=-1,
+                lw=0,
+            )
+            ax[i].axvspan(
+                xmin=ts2[order[i]][1] - 0.5,
+                xmax=L - 0.5,
+                ymin=0,
+                ymax=0.5,
+                color=args.greyregion,
+                zorder=-1,
+                lw=0,
             )
 
-    if i < L - 1:
-        ax[i].set_xticks([])
-        ax[i].tick_params(axis=u"both", which=u"both", length=0)
-    else:
+    # Adjust the subplot properties:
+    # Remove all axes ticks
+    # Remove all borders
+    for i in range(L):
+        ax[i].spines["right"].set_visible(False)
+        ax[i].spines["top"].set_visible(False)
+        ax[i].spines["left"].set_visible(False)
         ax[i].spines["bottom"].set_visible(False)
-        ax[i].tick_params(axis=u"both", which=u"both", length=0)
-        ax[i].set_xlabel("Number of features acquired")
-        ax[i].set_xticks(np.arange(-0.5, L + 0.5, args.xevery))
-        ax[i].set_xticklabels(range(0, L + 1, args.xevery))
+        ax[i].set_yticks([])
+        ax[i].set_yticklabels([])
+        if args.f2 == None:
+            ax[i].set_ylabel(
+                labels[order[i]],
+                rotation="horizontal",
+                ha="right",
+                va="baseline",
+                y=0.0,
+            )
+        else:
+            ax[i].set_ylabel(
+                labels[order[i]], rotation="horizontal", ha="right", va="center"
+            )
 
-if args.seperated == "yes":
-    fig.subplots_adjust(hspace=0.0)
-else:
-    fig.subplots_adjust(hspace=-0.25)
+        ax[i].set_ylim(ylims[order[i]])
 
-if args.out_type == "pdf":
-    from matplotlib.backends.backend_pdf import PdfPages
+        # Horizontal axis
+        if args.haxis == "yes":
+            ax[i].axhline(0, xmin=0, xmax=L, lw=0.25, color="dimgrey", zorder=-2)
+        else:
+            if args.haxis == "scaled":
+                ax[i].axhline(
+                    0, xmin=0, xmax=L, lw=0.25 * 20 / L, color="dimgrey", zorder=-2
+                )
 
-    plot = PdfPages(args.outfile + ".pdf")
-    plot.savefig(bbox_inches="tight", figure=fig)
-    plot.close()
-else:
-    if args.out_type == "png":
-        fig.savefig(args.outfile + ".png", bbox_inches="tight", dpi=600)
+        if i < L - 1:
+            ax[i].set_xticks([])
+            ax[i].tick_params(axis=u"both", which=u"both", length=0)
+        else:
+            ax[i].spines["bottom"].set_visible(False)
+            ax[i].tick_params(axis=u"both", which=u"both", length=0)
+            ax[i].set_xlabel("Number of features acquired")
+            ax[i].set_xticks(np.arange(-0.5, L + 0.5, args.xevery))
+            ax[i].set_xticklabels(range(0, L + 1, args.xevery))
+
+    if args.seperated == "yes":
+        fig.subplots_adjust(hspace=0.0)
+    else:
+        fig.subplots_adjust(hspace=-0.25)
+
+    if args.out_type == "pdf":
+        from matplotlib.backends.backend_pdf import PdfPages
+
+        plot = PdfPages(args.outfile + ".pdf")
+        plot.savefig(bbox_inches="tight", figure=fig)
+        plot.close()
+    else:
+        if args.out_type == "png":
+            fig.savefig(args.outfile + ".png", bbox_inches="tight", dpi=600)
+
+
+if __name__ == "__main__":
+    main()

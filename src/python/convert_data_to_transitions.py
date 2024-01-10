@@ -90,10 +90,9 @@ parser.add_argument(
 parser.add_argument(
     "-outfile_cs", type=str, required=False, default="raw-data.txt"
 )
+
 args, unknown = parser.parse_known_args()
-
 print(args)
-
 
 def LoadData(file_name, keep_nan=0, index_col=0):
     df = pd.read_csv(file_name, sep=",", index_col=index_col).astype(int)
@@ -468,71 +467,78 @@ def WriteGraph(G, outfile=args.outfile, graphviz=args.graphviz):
         outfile[:-4] + ".nodelist", sep="\t", header=None, index=None
     )
 
+def main():
 
-if args.input_type == "cross-sectional":
-    data = LoadData(args.data, keep_nan=1)
-    obs, G = MakeCSObservations(data)
-    WriteLabels(data, outfile=args.labels, start=0)
-    WriteTransitions(obs, args.outfile)
-    WriteCS(data, args.outfile_cs)
-    WriteGraph(G, args.outfile)
+    if args.input_type == "cross-sectional":
+        data = LoadData(args.data, keep_nan=1)
+        obs, G = MakeCSObservations(data)
+        WriteLabels(data, outfile=args.labels, start=0)
+        WriteTransitions(obs, args.outfile)
+        WriteCS(data, args.outfile_cs)
+        WriteGraph(G, args.outfile)
 
-if args.input_type == "longitudinal":
-    data = LoadData(args.data, keep_nan=0, index_col=None)
-    obs, cs_obs, G = MakeLongitudinalObservations(
-        data, constant_transitions=args.constant_transitions
-    )
-    WriteLabels(data, outfile=args.labels, start=1)
-    WriteTransitions(obs, args.outfile)
-    WriteCS(cs_obs, args.outfile_cs)
-    WriteGraph(G, args.outfile)
+    if args.input_type == "longitudinal":
+        data = LoadData(args.data, keep_nan=0, index_col=None)
+        obs, cs_obs, G = MakeLongitudinalObservations(
+            data, constant_transitions=args.constant_transitions
+        )
+        WriteLabels(data, outfile=args.labels, start=1)
+        WriteTransitions(obs, args.outfile)
+        WriteCS(cs_obs, args.outfile_cs)
+        WriteGraph(G, args.outfile)
 
-if args.input_type == "sample-tree":
-    G = nx.read_edgelist(args.sample_tree, create_using=nx.DiGraph())
-    df = pd.read_csv(args.data, index_col=0).astype(int)
-    transitions = []
-    df.index = df.index.astype(str)
-    df.loc["0"] = [0] * df.shape[1]
-    for edge in G.edges():
-        s = edge[0]
-        t = edge[1]
-        if t in df.index:
-            if s in df.index:
-                s_l = tuple(df.loc[s])
-            else:
-                s_l = tuple([0] * len(df.iloc[0]))
-            t_l = tuple(df.loc[t])
-            if s_l != t_l or args.constant_transitions == 1:
-                transitions.append(s_l)
-                transitions.append(t_l)
-            G.nodes()[s]["state"] = s_l
-            G.nodes()[t]["state"] = t_l
-    df_out = pd.DataFrame(transitions)
-    df_out.to_csv(args.outfile, sep=" ", header=None, index=None)
-    WriteLabels(df)
-    WriteCS(df, args.outfile_cs)
-    WriteGraph(G, args.outfile)
+    if args.input_type == "sample-tree":
+        G = nx.read_edgelist(args.sample_tree, create_using=nx.DiGraph())
+        df = pd.read_csv(args.data, index_col=0).astype(int)
+        transitions = []
+        df.index = df.index.astype(str)
+        df.loc["0"] = [0] * df.shape[1]
+        for edge in G.edges():
+            s = edge[0]
+            t = edge[1]
+            if t in df.index:
+                if s in df.index:
+                    s_l = tuple(df.loc[s])
+                else:
+                    s_l = tuple([0] * len(df.iloc[0]))
+                t_l = tuple(df.loc[t])
+                if s_l != t_l or args.constant_transitions == 1:
+                    transitions.append(s_l)
+                    transitions.append(t_l)
+                G.nodes()[s]["state"] = s_l
+                G.nodes()[t]["state"] = t_l
+        df_out = pd.DataFrame(transitions)
+        df_out.to_csv(args.outfile, sep=" ", header=None, index=None)
+        WriteLabels(df)
+        WriteCS(df, args.outfile_cs)
+        WriteGraph(G, args.outfile)
 
-if args.input_type == "phylogenetic":
-    data = LoadData(args.data, keep_nan=0)
-    args.resolve_single_leaves = 1
-    t = LoadTree(
-        args.phylogeny, format_type=args.phylogeny_format, root_if_unrooted=1
-    )
-    t, leaf_dict = MatchLabelsToLeaves(t, data)
-    node_dict, label_dict = MakeNodeDict(
-        t, leaf_dict, resolve_single_leaves=args.resolve_single_leaves
-    )
-    CheckLeaves(t)
-    obs, G = MakeObservations(
-        t,
-        node_dict,
-        label_dict,
-        constant_transitions=args.constant_transitions,
-        resolve_single_leaves=args.resolve_single_leaves,
-    )
-    WriteLabels(data, outfile=args.labels, start=0)
-    WriteTransitions(obs, args.outfile)
-    WriteCS(data, args.outfile_cs)
-    PrintGraphProperties(G)
-    WriteGraph(G, args.outfile)
+    if args.input_type == "phylogenetic":
+        data = LoadData(args.data, keep_nan=0)
+        args.resolve_single_leaves = 1
+        t = LoadTree(
+            args.phylogeny, format_type=args.phylogeny_format, root_if_unrooted=1
+        )
+        t, leaf_dict = MatchLabelsToLeaves(t, data)
+        node_dict, label_dict = MakeNodeDict(
+            t, leaf_dict, resolve_single_leaves=args.resolve_single_leaves
+        )
+        CheckLeaves(t)
+        obs, G = MakeObservations(
+            t,
+            node_dict,
+            label_dict,
+            constant_transitions=args.constant_transitions,
+            resolve_single_leaves=args.resolve_single_leaves,
+        )
+        WriteLabels(data, outfile=args.labels, start=0)
+        WriteTransitions(obs, args.outfile)
+        WriteCS(data, args.outfile_cs)
+        PrintGraphProperties(G)
+        WriteGraph(G, args.outfile)
+
+
+if __name__ == "__main__":
+    main()
+
+
