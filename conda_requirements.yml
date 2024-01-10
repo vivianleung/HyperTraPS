@@ -1,10 +1,11 @@
 name: HyperTraPS
 channels:
+  - vivianleung  # for pmodeltest
   - etetoolkit
   - conda-forge
   - defaults
 dependencies:
-  - python=3.7
+  # - python=3
   - numpy=1.21
   - scipy=1.7
   - matplotlib=3.5
@@ -15,3 +16,5 @@ dependencies:
   - seaborn=0.11
   - jupyterlab
   - pygraphviz
+  - pmodeltest
+  - ete_toolchain
