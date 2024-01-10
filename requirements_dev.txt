@@ -1,0 +1,5 @@
+black
+pylint
+hatch
+hatch-requirements-txt
+pip >= 23.3
