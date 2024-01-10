@@ -33,7 +33,7 @@ plt.style.use("seaborn-colorblind")
 # args.sharey_feature = "yes"
 # args.normalise = "no" : means that, given the feature is acquired on trajectory in 2, when?
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument("-f", required=False, default=None, type=str)
 parser.add_argument("-f2", required=False, default=None, type=str)
 parser.add_argument("-outfile", required=False, default="_raw_data", type=str)

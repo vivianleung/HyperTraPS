@@ -19,7 +19,7 @@ from utils import print_args
 
 np.random.seed(0)
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument("-f", required=True, default=None)
 parser.add_argument("-svg", required=False, default="no")
 parser.add_argument(

@@ -11,7 +11,7 @@ import argparse
 from utils import print_args
 
 plt.style.use("ggplot")
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument("-f", required=False, default="stats.csv", type=str)
 parser.add_argument("-b", required=False, type=int, default=50000)
 parser.add_argument("-last", required=False, type=int, default=500)

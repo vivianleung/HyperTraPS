@@ -61,7 +61,7 @@ def MinAIC(parameters, variable):
 
 plt.style.use("seaborn-colorblind")
 cwd = os.getcwd()
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument("-f", "--f", type=str, required=True)
 parser.add_argument("-f2", type=str, required=False)
 parser.add_argument("-outfile", type=str, required=False, default="_test")

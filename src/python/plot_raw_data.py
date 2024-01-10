@@ -11,7 +11,7 @@ from matplotlib.colors import LinearSegmentedColormap
 
 from utils import print_args
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument("-f", required=False, default=None, type=str)
 parser.add_argument("-outfile", required=False, default="_raw_data", type=str)
 parser.add_argument("-labels", required=False, default=None, type=str)
