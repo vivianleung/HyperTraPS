@@ -71,7 +71,7 @@ import networkx as nx
 from collections import OrderedDict
 import argparse
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument("-data", type=str, required=False)
 parser.add_argument(
     "-input_type", type=str, required=False, default="phylogenetic"
@@ -129,7 +129,9 @@ def WriteCS(df_in, outfile):
     df.to_csv(outfile, sep=" ", header=None, index=None)
 
 
-def WriteLabels(df, simpler=[], outfile="labels.csv", start=0):
+def WriteLabels(df, simpler=None, outfile="labels.csv", start=0) -> None:
+    if simpler is None:
+        simpler = []
     labels = []
     for i, el in enumerate(df.columns[start:]):
         if len(simpler) != 0:
