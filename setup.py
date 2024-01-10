@@ -20,12 +20,12 @@ setup(
     entry_points={
         "console_scripts": [
             "hypertraps-convert-data-to-transitions=src.python.convert_data_to_transitions:main",
-            # "hypertraps-plot-feature-graph=plot_feature_graph:main",
-            # "hypertraps-plot-hypercube-graph=plot_hypercube_graph:main",
-            # "hypertraps-plot-information-criterion=plot_information_criterion:main",
-            # "hypertraps-plot-mc-stats=plot_mc_stats:main",
-            # "hypertraps-plot-ordering-histogram=plot_ordering_histogram:main",
-            # "hypertraps-plot-raw-data=plot_raw_data:main",
+            "hypertraps-plot-feature-graph=python.plot_feature_graph:main",
+            "hypertraps-plot-hypercube-graph=python.plot_hypercube_graph:main",
+            "hypertraps-plot-information-criterion=python.plot_information_criterion:main",
+            "hypertraps-plot-mc-stats=python.plot_mc_stats:main",
+            "hypertraps-plot-ordering-histogram=python.plot_ordering_histogram:main",
+            "hypertraps-plot-raw-data=python.plot_raw_data:main",
         ]
     }
 )

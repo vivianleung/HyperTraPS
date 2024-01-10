@@ -71,24 +71,56 @@ import networkx as nx
 from collections import OrderedDict
 import argparse
 
-parser = argparse.ArgumentParser(add_help=True)
+parser = argparse.ArgumentParser(
+    description=("This python file takes an input sample dataframe (and phylogeny) and "
+"outputs the transition dataset that can be parsed by HyperTraPS for "
+"performing inference"),
+    epilog=("Outputs: "
+"(1) Transition dataset for input to HyperTraPS, "
+"(2) Raw data of cross-section, and "
+"(3) Labels file for use in post-HyperTraPS analysis procedures"
+),
+    add_help=True
+    
+)
 parser.add_argument("-data", type=str, required=False)
 parser.add_argument(
-    "-input_type", type=str, required=False, default="phylogenetic"
+    "-input_type", type=str, required=False, default="phylogenetic",
+    choices=["cross-sectional", "longitudinal", "sample-tree", "phylogenetic"],
 )
-parser.add_argument("-phylogeny", type=str, required=False, default=None)
-parser.add_argument("-phylogeny_format", type=int, required=False, default=3)
+parser.add_argument("-phylogeny", type=str, required=False, default=None,
+    help=(
+        "A phylogeny where leaves match the "Sample Index" passed to -data "
+        "Must be in Newick format and is imported with ete3 "
+        "If unrooted, sets root as the outgroup of the midpoint (arbitrary) "
+    )
+)
+parser.add_argument(
+    "-phylogeny_format",
+    type=int,
+    required=False,
+    default=3,
+    help=(
+        "The format type for the ete3 import. See: "
+        "http://etetoolkit.org/docs/latest/tutorial/tutorial_trees.html#reading-and-writing-newick-trees"
+    )
+)
 parser.add_argument("-sample_tree", type=str, required=False, default=None)
 parser.add_argument(
-    "-constant_transitions", type=int, required=False, default=1
+    "-constant_transitions", type=int, required=False, default=1,
+    choices=[0, 1], help=(
+        "Whether or not to include transitions in dataset where no change occurs. "
+"Adds a constant amount to liklihood so is set to 0 to switch off as default"
+    )
 )
-parser.add_argument("-labels", type=str, required=False, default="labels.csv")
+parser.add_argument("-labels", type=str, required=False, default="labels.csv", help="The header with the feature names are output to the file passed here")
 parser.add_argument("-graphviz", type=str, required=False, default="no")
 parser.add_argument(
-    "-outfile", type=str, required=False, default="transitions.txt"
+    "-outfile", type=str, required=False, default="transitions.txt", help="The transition dataset that is passed to HyperTraPS is passed here."
 )
 parser.add_argument(
-    "-outfile_cs", type=str, required=False, default="raw-data.txt"
+    "-outfile_cs", type=str, required=False, default="raw-data.txt",
+    help="The cross-section (cross-sectional and leaves for phylogeny) or end for longitudinal"
 )
 
 args, unknown = parser.parse_known_args()
@@ -338,7 +370,7 @@ def MakeObservations(
         if parent.is_root() == True:
             try:
                 p_s = node_dict[parent]
-            except:
+            except KeyError:
                 if verbose == 1:
                     print(f"Can't print parent state: {parent}")
             if verbose == 1:
