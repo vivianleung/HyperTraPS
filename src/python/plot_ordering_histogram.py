@@ -11,7 +11,11 @@ mpl.use("agg")
 import matplotlib.pyplot as plt
 import statsmodels.nonparametric.api as smnp
 
-plt.style.use("seaborn-colorblind")
+try:
+    plt.style.use("seaborn-colorblind")
+except (FileNotFoundError, OSError):
+    # style name for newer versions of matplotlib
+    plt.style.use("seaborn-v0_8-colorblind")
 
 # Options for axis scaling
 # 1. f1 only: same across all plots, normalise
