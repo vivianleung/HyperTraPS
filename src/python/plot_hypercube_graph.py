@@ -19,7 +19,9 @@ from utils import print_args
 
 np.random.seed(0)
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter, add_help=True
+)
 parser.add_argument("-f", required=True, default=None)
 parser.add_argument("-svg", required=False, default="no")
 parser.add_argument(
@@ -1026,7 +1028,13 @@ old_colorblind = [
     "#56e4b9",
 ]
 plt.clf()
-plt.style.use("seaborn-colorblind")
+
+try:
+    # deprecated since 3.6
+    plt.style.use("seaborn-colorblind")
+except (FileNotFoundError, OSError):
+    plt.style.use("seaborn-v0_8-colorblind")
+
 ncolors_old = 6
 ncolors = ncolors_old
 pal = sns.color_palette("colorblind", ncolors_old)
