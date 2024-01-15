@@ -263,7 +263,7 @@ args.transitions = (
     prefix + "forwards_list-pord-trajectory-" + args.data_type + ".txt"
 )
 
-font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+font = {"family": "sans-serif", "size": args.fontsize} #, "sans-serif": ["Arial"]}
 mpl.rc("font", **font)
 
 state_labels = [
@@ -382,7 +382,12 @@ if args.outfile_type == "png":
 
 
 plt.clf()
-plt.style.use("seaborn-colorblind")
+try:
+    plt.style.use("seaborn-colorblind")
+except (FileNotFoundError, OSError):
+    # style name for newer versions of matplotlib
+    plt.style.use("seaborn-v0_8-colorblind")
+
 fig = plt.figure(frameon=False)
 fig.set_size_inches(args.width, args.width)
 gs = gridspec.GridSpec(1, 1)
