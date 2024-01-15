@@ -13,7 +13,7 @@ from utils import print_args
 plt.style.use("ggplot")
 parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument("-f", required=False, default="stats.csv", type=str,
-                    help="output stats csv. default 'stats.csv'")
+                    help="input stats csv. default 'stats.csv'")
 parser.add_argument("-b", required=False, type=int, default=50000,
                     help="Burn-in. Default 50000")
 parser.add_argument("-last", required=False, type=int, default=500,

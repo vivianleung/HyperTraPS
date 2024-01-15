@@ -11,7 +11,11 @@ mpl.use("agg")
 import matplotlib.pyplot as plt
 import statsmodels.nonparametric.api as smnp
 
-plt.style.use("seaborn-colorblind")
+try:
+    plt.style.use("seaborn-colorblind")
+except (FileNotFoundError, OSError):
+    # style name for newer versions of matplotlib
+    plt.style.use("seaborn-v0_8-colorblind")
 
 # Options for axis scaling
 # 1. f1 only: same across all plots, normalise
@@ -33,41 +37,41 @@ plt.style.use("seaborn-colorblind")
 # args.sharey_feature = "yes"
 # args.normalise = "no" : means that, given the feature is acquired on trajectory in 2, when?
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-f", required=False, default=None, type=str)
-parser.add_argument("-f2", required=False, default=None, type=str)
-parser.add_argument("-outfile", required=False, default="_raw_data", type=str)
-parser.add_argument("-labels", required=False, default=None, type=str)
-parser.add_argument("-width", required=False, default=3, type=float)
-parser.add_argument("-aspect", required=False, default=0.5, type=float)
-parser.add_argument("-ordered", required=False, default="horizontal", type=str)
-parser.add_argument("-fontsize", required=False, default=6, type=float)
-parser.add_argument("-xevery", required=False, default=2, type=int)
-parser.add_argument("-kde_points", required=False, default=100, type=int)
-parser.add_argument("-normalise", required=False, default="no", type=str)
-parser.add_argument("-bar", required=False, default="yes", type=str)
-parser.add_argument("-kde", required=False, default="yes", type=str)
-parser.add_argument("-seperated", required=False, default="yes", type=str)
-parser.add_argument("-bar_alpha", required=False, default=1, type=float)
-parser.add_argument("-kde_alpha", required=False, default=0.25, type=float)
-parser.add_argument("-bw", required=False, default=0.5, type=float)
-parser.add_argument("-cut", required=False, default=1, type=float)
-parser.add_argument("-sharey_type", required=False, default="all", type=str)
-parser.add_argument("-sharey", required=False, default="yes", type=str)
-parser.add_argument("-sharey_all", required=False, default="yes", type=str)
-parser.add_argument("-sharey_feature", required=False, default="yes", type=str)
-parser.add_argument("-transition_data", required=False, default=None, type=str)
+parser = argparse.ArgumentParser(add_help=True, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-f", required=False, default=None, type=str, help="f")
+parser.add_argument("-f2", required=False, default=None, type=str, help="f2")
+parser.add_argument("-outfile", required=False, default="_raw_data", type=str, help="outfile")
+parser.add_argument("-labels", required=False, default=None, type=str, help="labels")
+parser.add_argument("-width", required=False, default=3, type=float, help="width")
+parser.add_argument("-aspect", required=False, default=0.5, type=float, help="aspect")
+parser.add_argument("-ordered", required=False, default="horizontal", type=str, help="ordered")
+parser.add_argument("-fontsize", required=False, default=6, type=float, help="fontsize")
+parser.add_argument("-xevery", required=False, default=2, type=int, help="xevery")
+parser.add_argument("-kde_points", required=False, default=100, type=int, help="kde_points")
+parser.add_argument("-normalise", required=False, default="no", type=str, help="normalise")
+parser.add_argument("-bar", required=False, default="yes", type=str, help="bar")
+parser.add_argument("-kde", required=False, default="yes", type=str, help="kde")
+parser.add_argument("-seperated", required=False, default="yes", type=str, help="seperated")
+parser.add_argument("-bar_alpha", required=False, default=1, type=float, help="bar_alpha")
+parser.add_argument("-kde_alpha", required=False, default=0.25, type=float, help="kde_alpha")
+parser.add_argument("-bw", required=False, default=0.5, type=float, help="bw")
+parser.add_argument("-cut", required=False, default=1, type=float, help="cut")
+parser.add_argument("-sharey_type", required=False, default="all", type=str, help="sharey_type")
+parser.add_argument("-sharey", required=False, default="yes", type=str, help="sharey")
+parser.add_argument("-sharey_all", required=False, default="yes", type=str, help="sharey_all")
+parser.add_argument("-sharey_feature", required=False, default="yes", type=str, help="sharey_feature")
+parser.add_argument("-transition_data", required=False, default=None, type=str, help="transition_data")
 parser.add_argument(
-    "-transition_data2", required=False, default=None, type=str
+    "-transition_data2", required=False, default=None, type=str, help="transition_data2"
 )
 parser.add_argument(
-    "-leftover_frequency", required=False, default="no", type=str
+    "-leftover_frequency", required=False, default="no", type=str, help="leftover_frequency"
 )
-parser.add_argument("-greyregion", required=False, default="#efefef", type=str)
-parser.add_argument("-haxis", required=False, default="yes", type=str)
-parser.add_argument("-pad", required=False, default=0.1, type=float)
-parser.add_argument("-out_type", required=False, default="pdf", type=str)
-parser.add_argument("-verbose", required=False, default="yes", type=str)
+parser.add_argument("-greyregion", required=False, default="#efefef", type=str, help="greyregion")
+parser.add_argument("-haxis", required=False, default="yes", type=str, help="haxis")
+parser.add_argument("-pad", required=False, default=0.1, type=float, help="pad")
+parser.add_argument("-out_type", required=False, default="pdf", type=str, help="out_type")
+parser.add_argument("-verbose", required=False, default="yes", type=str, help="verbose")
 args = parser.parse_args()
 
 # See above for update
@@ -102,7 +106,7 @@ if args.sharey_type == "feature":
     args.sharey_feature = "yes"
 
 
-font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+font = {"family": "sans-serif", "size": args.fontsize} #, "sans-serif": ["Arial"]}
 
 mpl.rc("font", **font)
 

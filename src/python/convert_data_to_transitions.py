@@ -84,6 +84,7 @@ parser = argparse.ArgumentParser(
         "(3) Labels file for use in post-HyperTraPS analysis procedures"
     ),
     add_help=True,
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
 parser.add_argument("-data", type=str, required=False)
 parser.add_argument(
@@ -162,7 +163,7 @@ parser.add_argument(
     '-sep',
     type=str,
     default=',',
-    help="Delimiter of input data. Default ','"
+    help="Delimiter of input data."
 )
 
 args, unknown = parser.parse_known_args()

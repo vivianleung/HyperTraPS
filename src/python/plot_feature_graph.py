@@ -14,41 +14,43 @@ import argparse
 
 from utils import print_args
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-f", required=False, default=None, type=str)
-parser.add_argument("-transitions", required=False, default=None)
-parser.add_argument("-bar", required=False, default="no")
-parser.add_argument("-heatmap", required=False, default="yes")
-parser.add_argument("-heatmap_max", required=False, default=None, type=float)
-parser.add_argument(
-    "-data_type", required=False, default="match-data", type=str
+parser = argparse.ArgumentParser(
+    add_help=True, formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
-parser.add_argument("-prob_type", required=False, default="joint", type=str)
-parser.add_argument("-layout_type", required=False, default="dot", type=str)
-parser.add_argument("-labels", required=False, default="labels.csv", type=str)
-parser.add_argument("-include_self_edges", required=False, default=None)
-parser.add_argument("-fontsize", required=False, type=float, default=4.0)
-parser.add_argument("-labelsfontsize", required=False, type=float, default=2.0)
+parser.add_argument("-f", required=False, default=None, type=str, help="f")
+parser.add_argument("-transitions", required=False, default=None, help="transitions")
+parser.add_argument("-bar", required=False, default="no", help="bar")
+parser.add_argument("-heatmap", required=False, default="yes", help="heatmap")
+parser.add_argument("-heatmap_max", required=False, default=None, type=float, help="heatmap_max")
 parser.add_argument(
-    "-xtick_rotation", required=False, type=float, default=90.0
+    "-data_type", required=False, default="match-data", type=str, help="data_type (zero-one or match-data)"
 )
-parser.add_argument("-outfile_type", required=False, default="pdf", type=str)
-parser.add_argument("-width", required=False, default=3.0, type=float)
-parser.add_argument("-aspect", required=False, default=0.5, type=float)
-parser.add_argument("-s", required=False, default=100, type=float)
-parser.add_argument("-yevery", required=False, default=1, type=int)
-parser.add_argument("-outfile", required=False, default=None)
-parser.add_argument("-node_size", required=False, default=100.0, type=float)
-parser.add_argument("-edge_width", required=False, default=2.5, type=float)
+parser.add_argument("-prob_type", required=False, default="joint", type=str, help="prob_type")
+parser.add_argument("-layout_type", required=False, default="dot", type=str, help="layout_type")
+parser.add_argument("-labels", required=False, default="labels.csv", type=str, help="labels")
+parser.add_argument("-include_self_edges", required=False, default=None, help="include_self_edges")
+parser.add_argument("-fontsize", required=False, type=float, default=4.0, help="fontsize")
+parser.add_argument("-labelsfontsize", required=False, type=float, default=2.0, help="labelsfontsize")
 parser.add_argument(
-    "-edge_width_exponent", required=False, default=1, type=float
+    "-xtick_rotation", required=False, type=float, default=90.0, help="xtick_rotation"
 )
-parser.add_argument("-graph_fontsize", required=False, default=8.0, type=float)
+parser.add_argument("-outfile_type", required=False, default="pdf", type=str, help="outfile_type")
+parser.add_argument("-width", required=False, default=3.0, type=float, help="width")
+parser.add_argument("-aspect", required=False, default=0.5, type=float, help="aspect")
+parser.add_argument("-s", required=False, default=100, type=float, help="s")
+parser.add_argument("-yevery", required=False, default=1, type=int, help="yevery")
+parser.add_argument("-outfile", required=False, default=None, help="outfile")
+parser.add_argument("-node_size", required=False, default=100.0, type=float, help="node_size")
+parser.add_argument("-edge_width", required=False, default=2.5, type=float, help="edge_width")
 parser.add_argument(
-    "-connection_style", required=False, default="arc3,rad=-0.2", type=str
+    "-edge_width_exponent", required=False, default=1, type=float, help="edge_width_exponent"
 )
-parser.add_argument("-any_time", required=False, default=0, type=int)
-parser.add_argument("-end", required=False, default="no", type=str)
+parser.add_argument("-graph_fontsize", required=False, default=8.0, type=float, help="graph_fontsize")
+parser.add_argument(
+    "-connection_style", required=False, default="arc3,rad=-0.2", type=str, help="connection_style"
+)
+parser.add_argument("-any_time", required=False, default=0, type=int, help="any_time")
+parser.add_argument("-end", required=False, default="no", type=str, help="end")
 args = parser.parse_args()
 
 # Print args used in script after parsing
@@ -261,7 +263,7 @@ args.transitions = (
     prefix + "forwards_list-pord-trajectory-" + args.data_type + ".txt"
 )
 
-font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+font = {"family": "sans-serif", "size": args.fontsize} #, "sans-serif": ["Arial"]}
 mpl.rc("font", **font)
 
 state_labels = [
@@ -346,7 +348,13 @@ if args.layout_type == "dot":
     pos = graphviz_layout(G, prog="dot")
 
 plt.clf()
-plt.style.use("seaborn-colorblind")
+
+try:
+    plt.style.use("seaborn-colorblind")
+except (FileNotFoundError, OSError):
+    # style name for newer versions of matplotlib
+    plt.style.use("seaborn-v0_8-colorblind")
+    
 fig = plt.figure()
 fig.set_size_inches(args.width, args.width)
 ax2 = fig.add_subplot(111)
@@ -374,7 +382,12 @@ if args.outfile_type == "png":
 
 
 plt.clf()
-plt.style.use("seaborn-colorblind")
+try:
+    plt.style.use("seaborn-colorblind")
+except (FileNotFoundError, OSError):
+    # style name for newer versions of matplotlib
+    plt.style.use("seaborn-v0_8-colorblind")
+
 fig = plt.figure(frameon=False)
 fig.set_size_inches(args.width, args.width)
 gs = gridspec.GridSpec(1, 1)

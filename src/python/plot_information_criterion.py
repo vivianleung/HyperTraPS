@@ -59,27 +59,35 @@ def MinAIC(parameters, variable):
     return mins, params
 
 
-plt.style.use("seaborn-colorblind")
+try:
+    # deprecated since 3.6
+    plt.style.use("seaborn-colorblind")
+except (FileNotFoundError, OSError):
+    plt.style.use("seaborn-v0_8-colorblind")
+
+
 cwd = os.getcwd()
-parser = argparse.ArgumentParser()
-parser.add_argument("-f", "--f", type=str, required=True)
-parser.add_argument("-f2", type=str, required=False)
-parser.add_argument("-outfile", type=str, required=False, default="_test")
-parser.add_argument("-loc", type=str, required=False)
-parser.add_argument("-width", type=float, required=False, default=3.4)
-parser.add_argument("-height", type=float, required=False, default=2)
-parser.add_argument("-aspect", type=float, required=False, default=None)
-parser.add_argument("-fontsize", type=float, required=False, default=6)
-parser.add_argument("-minvalue", type=float, required=False, default=None)
-parser.add_argument("-pdf", type=str, required=False, default="yes")
-parser.add_argument("-smooth_so", type=int, required=False, default=None)
-parser.add_argument("-legend_columns", type=int, required=False, default=2)
+parser = argparse.ArgumentParser(
+    add_help=True, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
+parser.add_argument("-f", "--f", type=str, required=True, help="f")
+parser.add_argument("-f2", type=str, required=False, help="f2")
+parser.add_argument("-outfile", type=str, required=False, default="_test", help="outfile")
+parser.add_argument("-loc", type=str, required=False, help="loc")
+parser.add_argument("-width", type=float, required=False, default=3.4, help="width")
+parser.add_argument("-height", type=float, required=False, default=2, help="height")
+parser.add_argument("-aspect", type=float, required=False, default=None, help="aspect")
+parser.add_argument("-fontsize", type=float, required=False, default=6, help="fontsize")
+parser.add_argument("-minvalue", type=float, required=False, default=None, help="minvalue")
+parser.add_argument("-pdf", type=str, required=False, default="yes", help="pdf")
+parser.add_argument("-smooth_so", type=int, required=False, default=None, help="smooth_so")
+parser.add_argument("-legend_columns", type=int, required=False, default=2, help="legend_columns")
 args = parser.parse_args()
 
 # Print args used in script after parsing
 print_args(args)
 
-font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+font = {"family": "sans-serif", "size": args.fontsize} #, "sans-serif": ["Arial"]}
 mpl.rc("font", **font)
 
 file1 = args.f
