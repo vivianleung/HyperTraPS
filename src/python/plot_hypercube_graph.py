@@ -22,73 +22,73 @@ np.random.seed(0)
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter, add_help=True
 )
-parser.add_argument("-f", required=True, default=None)
-parser.add_argument("-svg", required=False, default="no")
+parser.add_argument("-f", required=True, default=None, help="f")
+parser.add_argument("-svg", required=False, default="no", help="svg")
 parser.add_argument(
-    "-edge_scale_exponent", required=False, default=0.5, type=float
+    "-edge_scale_exponent", required=False, default=0.5, type=float, help="edge_scale_exponent"
 )
-parser.add_argument("-edge_scale", required=False, default=2.5, type=float)
-parser.add_argument("-edge_color", required=False, default="dimgrey", type=str)
-parser.add_argument("-edge_alpha", required=False, default=0.5, type=float)
+parser.add_argument("-edge_scale", required=False, default=2.5, type=float, help="edge_scale")
+parser.add_argument("-edge_color", required=False, default="dimgrey", type=str, help="edge_color")
+parser.add_argument("-edge_alpha", required=False, default=0.5, type=float, help="edge_alpha")
 parser.add_argument(
-    "-show_edge_alpha", required=False, default="yes", type=str
+    "-show_edge_alpha", required=False, default="yes", type=str, help="show_edge_alpha"
 )
-parser.add_argument("-node_scale", required=False, default=1.0, type=float)
+parser.add_argument("-node_scale", required=False, default=1.0, type=float, help="node_scale")
 parser.add_argument(
-    "-node_scale_exponent", required=False, default=1.0, type=float
+    "-node_scale_exponent", required=False, default=1.0, type=float, help="node_scale_exponent"
 )
-parser.add_argument("-node_alpha", required=False, default=1, type=float)
-parser.add_argument("-write_transitions", required=False, default="no")
-parser.add_argument("-xaxis", required=False, default="yes")
-parser.add_argument("-xevery", required=False, default=2, type=int)
-parser.add_argument("-direction_weight", required=False, default=1, type=float)
-parser.add_argument("-tlimit", required=False, default=int(1e8), type=int)
-parser.add_argument("-labels", required=False, default=None)
-parser.add_argument("-extra_labels", required=False, default=None)
-parser.add_argument("-extra_labels_routes", required=False, default=None)
-parser.add_argument("-fontsize", required=False, default=6, type=float)
-parser.add_argument("-labels_fontsize", required=False, default=5, type=float)
-parser.add_argument("-outfile_graph", required=False, default=None, type=str)
-parser.add_argument("-edge_labels", required=False, default="False", type=str)
-parser.add_argument("-gamma", required=False, default=1.0, type=float)
-parser.add_argument("-gap_type", required=False, default="hamming", type=str)
+parser.add_argument("-node_alpha", required=False, default=1, type=float, help="node_alpha")
+parser.add_argument("-write_transitions", required=False, default="no", help="write_transitions")
+parser.add_argument("-xaxis", required=False, default="yes", help="xaxis")
+parser.add_argument("-xevery", required=False, default=2, type=int, help="xevery")
+parser.add_argument("-direction_weight", required=False, default=1, type=float, help="direction_weight")
+parser.add_argument("-tlimit", required=False, default=int(1e8), type=int, help="tlimit")
+parser.add_argument("-labels", required=False, default=None, help="labels")
+parser.add_argument("-extra_labels", required=False, default=None, help="extra_labels")
+parser.add_argument("-extra_labels_routes", required=False, default=None, help="extra_labels_routes")
+parser.add_argument("-fontsize", required=False, default=6, type=float, help="fontsize")
+parser.add_argument("-labels_fontsize", required=False, default=5, type=float, help="labels_fontsize")
+parser.add_argument("-outfile_graph", required=False, default=None, type=str, help="outfile_graph")
+parser.add_argument("-edge_labels", required=False, default="False", type=str, help="edge_labels")
+parser.add_argument("-gamma", required=False, default=1.0, type=float, help="gamma")
+parser.add_argument("-gap_type", required=False, default="hamming", type=str, help="gap_type")
 parser.add_argument(
-    "-probable_paths", required=False, default=None, type=float
+    "-probable_paths", required=False, default=None, type=float, help="probable_paths"
 )
-parser.add_argument("-node_normalise", required=False, default=1.0, type=float)
-parser.add_argument("-edge_normalise", required=False, default=1.0, type=float)
+parser.add_argument("-node_normalise", required=False, default=1.0, type=float, help="node_normalise")
+parser.add_argument("-edge_normalise", required=False, default=1.0, type=float, help="edge_normalise")
 parser.add_argument(
-    "-layout_type", required=False, default="noverlap", type=str
+    "-layout_type", required=False, default="noverlap", type=str, help="layout_type"
 )
-parser.add_argument("-noverlap_space", required=False, default=0.1, type=float)
-parser.add_argument("-bbox", required=False, default="tight", type=str)
-parser.add_argument("-aspect", required=False, default=0.75, type=float)
-parser.add_argument("-width", required=False, default=3, type=float)
-parser.add_argument("-axlim", required=False, default=1.3, type=float)
-parser.add_argument("-max_width", required=False, default=3, type=float)
-parser.add_argument("-grid", required=False, default="no", type=str)
-parser.add_argument("-node_type", required=False, default="int", type=str)
-parser.add_argument("-out_type", required=False, default="pdf", type=str)
+parser.add_argument("-noverlap_space", required=False, default=0.1, type=float, help="noverlap_space")
+parser.add_argument("-bbox", required=False, default="tight", type=str, help="bbox")
+parser.add_argument("-aspect", required=False, default=0.75, type=float, help="aspect")
+parser.add_argument("-width", required=False, default=3, type=float, help="width")
+parser.add_argument("-axlim", required=False, default=1.3, type=float, help="axlim")
+parser.add_argument("-max_width", required=False, default=3, type=float, help="max_width")
+parser.add_argument("-grid", required=False, default="no", type=str, help="grid")
+parser.add_argument("-node_type", required=False, default="int", type=str, help="node_type")
+parser.add_argument("-out_type", required=False, default="pdf", type=str, help="out_type")
 parser.add_argument(
-    "-label_type", required=False, default="greedy_data", type=str
+    "-label_type", required=False, default="greedy_data", type=str, help="label_type"
 )
 parser.add_argument(
-    "-xlabel", required=False, default="Number of features acquired", type=str
+    "-xlabel", required=False, default="Number of features acquired", type=str, help="xlabel"
 )
-parser.add_argument("-show_se", required=False, default="bracket", type=str)
-parser.add_argument("-label_bbox", required=False, default="yes", type=str)
-parser.add_argument("-alternate_label", required=False, default="no", type=str)
+parser.add_argument("-show_se", required=False, default="bracket", type=str, help="show_se")
+parser.add_argument("-label_bbox", required=False, default="yes", type=str, help="label_bbox")
+parser.add_argument("-alternate_label", required=False, default="no", type=str, help="alternate_label")
 parser.add_argument(
-    "-radial_label_distance", required=False, default=-1, type=float
+    "-radial_label_distance", required=False, default=-1, type=float, help="radial_label_distance"
 )
-parser.add_argument("-bbox_alpha", required=False, default=0.75, type=float)
-parser.add_argument("-extra", required=False, default="no", type=str)
+parser.add_argument("-bbox_alpha", required=False, default=0.75, type=float, help="bbox_alpha")
+parser.add_argument("-extra", required=False, default="no", type=str, help="extra")
 parser.add_argument(
-    "-label_colour_type", required=False, default="gradient", type=str
+    "-label_colour_type", required=False, default="gradient", type=str, help="label_colour_type"
 )
-parser.add_argument("-colormap", required=False, default="plasma", type=str)
-parser.add_argument("-transition_data", required=False, default=None, type=str)
-parser.add_argument("-arb", required=False, default=None, type=str)
+parser.add_argument("-colormap", required=False, default="plasma", type=str, help="colormap")
+parser.add_argument("-transition_data", required=False, default=None, type=str, help="transition_data")
+parser.add_argument("-arb", required=False, default=None, type=str, help="arb")
 args = parser.parse_args()
 
 # Print args used in script after parsing
