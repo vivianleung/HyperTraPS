@@ -348,7 +348,13 @@ if args.layout_type == "dot":
     pos = graphviz_layout(G, prog="dot")
 
 plt.clf()
-plt.style.use("seaborn-colorblind")
+
+try:
+    plt.style.use("seaborn-colorblind")
+except (FileNotFoundError, OSError):
+    # style name for newer versions of matplotlib
+    plt.style.use("seaborn-v0_8-colorblind")
+    
 fig = plt.figure()
 fig.set_size_inches(args.width, args.width)
 ax2 = fig.add_subplot(111)
