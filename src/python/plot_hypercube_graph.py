@@ -19,7 +19,9 @@ from utils import print_args
 
 np.random.seed(0)
 
-parser = argparse.ArgumentParser(add_help=True)
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter, add_help=True
+)
 parser.add_argument("-f", required=True, default=None)
 parser.add_argument("-svg", required=False, default="no")
 parser.add_argument(
@@ -922,9 +924,56 @@ def main():
         plt.savefig(out, dpi=300)
 
 
-    for node in G.nodes():
-        if len(G.in_edges(node)) < 1:
-            print(node)
+weights_original = Adjust(
+    weights, float(args.edge_alpha), float(args.edge_scale)
+)
+weights = Adjust(
+    weights, float(args.edge_scale_exponent), float(args.edge_scale)
+)
+if args.probable_paths != None:
+    weights_original_2 = Adjust(
+        weights_2, float(args.edge_alpha), float(args.edge_scale)
+    )
+    weights_2 = Adjust(
+        weights_2, float(args.edge_scale_exponent), float(args.edge_scale)
+    )
+
+
+# Plotting
+old_colorblind = [
+    "#0072b2",
+    "#009e73",
+    "#d55e00",
+    "#cc79a7",
+    "#f0e442",
+    "#56e4b9",
+]
+plt.clf()
+
+try:
+    # deprecated since 3.6
+    plt.style.use("seaborn-colorblind")
+except (FileNotFoundError, OSError):
+    plt.style.use("seaborn-v0_8-colorblind")
+
+ncolors_old = 6
+ncolors = ncolors_old
+pal = sns.color_palette("colorblind", ncolors_old)
+pal = sns.color_palette(old_colorblind)
+
+fig = plt.figure()
+fig.set_size_inches(args.width, args.width * args.aspect)
+ax = fig.add_subplot(111)
+pos = fixed_positions
+colors = MakeColors(weights)
+if args.node_normalise == 1.0 or args.edge_normalise == 1.0:
+    colorn = pal[0]
+else:
+    colorn = pal[0]
+
+
+def CycleColors(i, ncolors=ncolors, taken=2):
+    return i % (ncolors - taken) + int(taken / 2)
 
     fixed_position = MakeFixedPosition(G, L)
 
