@@ -14,6 +14,26 @@ from collections import OrderedDict
 from utils import print_args
 
 
+plt.style.use("seaborn-colorblind")
+cwd = os.getcwd()
+parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--f", type=str, required=True)
+parser.add_argument("-f2", type=str, required=False)
+parser.add_argument("-outfile", type=str, required=False, default="_test")
+parser.add_argument("-loc", type=str, required=False)
+parser.add_argument("-width", type=float, required=False, default=3.4)
+parser.add_argument("-height", type=float, required=False, default=2)
+parser.add_argument("-aspect", type=float, required=False, default=None)
+parser.add_argument("-fontsize", type=float, required=False, default=6)
+parser.add_argument("-minvalue", type=float, required=False, default=None)
+parser.add_argument("-pdf", type=str, required=False, default="yes")
+parser.add_argument("-smooth_so", type=int, required=False, default=None)
+parser.add_argument("-legend_columns", type=int, required=False, default=2)
+args = parser.parse_args()
+
+# Print args used in script after parsing
+print_args(args)
+
 def smooth(x, window_len=11, window="hanning"):
     # From: https://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
     if x.ndim != 1:
@@ -57,27 +77,6 @@ def MinAIC(parameters, variable):
         minimum = np.min(value)
         mins.append(minimum)
     return mins, params
-
-
-plt.style.use("seaborn-colorblind")
-cwd = os.getcwd()
-parser = argparse.ArgumentParser(add_help=True)
-parser.add_argument("-f", "--f", type=str, required=True)
-parser.add_argument("-f2", type=str, required=False)
-parser.add_argument("-outfile", type=str, required=False, default="_test")
-parser.add_argument("-loc", type=str, required=False)
-parser.add_argument("-width", type=float, required=False, default=3.4)
-parser.add_argument("-height", type=float, required=False, default=2)
-parser.add_argument("-aspect", type=float, required=False, default=None)
-parser.add_argument("-fontsize", type=float, required=False, default=6)
-parser.add_argument("-minvalue", type=float, required=False, default=None)
-parser.add_argument("-pdf", type=str, required=False, default="yes")
-parser.add_argument("-smooth_so", type=int, required=False, default=None)
-parser.add_argument("-legend_columns", type=int, required=False, default=2)
-args = parser.parse_args()
-
-# Print args used in script after parsing
-print_args(args)
 
 def main():
     font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}

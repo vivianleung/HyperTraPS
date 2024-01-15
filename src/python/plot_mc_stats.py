@@ -24,7 +24,6 @@ args = parser.parse_args()
 print_args(args)
 
 
-
 def PlotFigure(mc_step1, log_lik1, div_3, div0_3, new_data_lists, start, last):
     plt.clf()
     fig = plt.figure()
@@ -141,6 +140,7 @@ def main():
         except:
             div0_3.append(np.nan)
 
+
     PlotFigure(mc_step1, log_lik1, div_3, div0_3, new_data_lists, 0, last)
     PlotFigure(
         [el - args.b for el in list(mc_step1)],
@@ -167,3 +167,8 @@ def main():
         f"{f'Increasing likelihood proportion end over last (APM) {args.last} iterations':<{width}}: {div0_3[-1]:>20.2f}"
     )
     print("-" * 100)
+
+
+if __name__ == "__main__":
+    main()
+

@@ -33,7 +33,7 @@ plt.style.use("seaborn-colorblind")
 # args.sharey_feature = "yes"
 # args.normalise = "no" : means that, given the feature is acquired on trajectory in 2, when?
 
-parser = argparse.ArgumentParser(add_help=True)
+parser = argparse.ArgumentParser()
 parser.add_argument("-f", required=False, default=None, type=str)
 parser.add_argument("-f2", required=False, default=None, type=str)
 parser.add_argument("-outfile", required=False, default="_raw_data", type=str)
@@ -70,27 +70,62 @@ parser.add_argument("-out_type", required=False, default="pdf", type=str)
 parser.add_argument("-verbose", required=False, default="yes", type=str)
 args = parser.parse_args()
 
+# See above for update
+# Axes sharing cases (also matters what normalise is...)
+# args.sharey
+# args.sharey_all
+# args.sharey_feature
+#     1. Single data: max y across all axes: sharey == "yes"
+#     2. Single data: max y for a given feature: sharey == "no"
+#     3. Double data: max y across all axes: sharey_all == "yes"
+#     4. Double data: max y across all features for each set: sharey_all == "no", sharey == "yes"
+#     5. Double data: max y across both within same feature: sharey_all == "no", sharey == "no", sharey_feature == "yes"
+#     6. Double data: max y for each data for each feature: sharey_all == "no", sharey == "no", sharey_feature == "no"
+#     7. Double data (normed to 1): max y for each data for each feature: sharey_all == "no", sharey == "no", sharey_feature == "no"
+
+
+# DEFAULT TO STYLE 3, if f2 != None, and default to same transition data
+if args.f2 != None:
+    args.aspect = 0.9
+    args.normalise = "no"
+    args.sharey_type = "feature"
+    if args.transition_data2 == None:
+        args.transition_data2 = args.transition_data
+
+if args.sharey_type == "all":
+    args.sharey = "yes"
+    args.sharey_all = "yes"
+
+if args.sharey_type == "feature":
+    args.sharey = "no"
+    args.sharey_all = "no"
+    args.sharey_feature = "yes"
+
+
+font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+
+mpl.rc("font", **font)
 
 
 # Methods to make PDFs and KDEs
-def MakePdf(df, l=L):
+def MakePdf(df, l):
     X = np.zeros((l, l))
     for i, el in enumerate(df.values):
         X[el[1], el[0]] += 1
     return X
 
 
-def Order(pdf, l=L):
+def Order(pdf, l):
     steps = np.array(range(l))
     means = [(np.dot(steps, el), i) for i, el in enumerate(pdf)]
     return [el[1] for el in sorted(means)]
 
 
-def GetLabels(file_name, l=L):
+def GetLabels(file_name, l):
     if file_name != None:
         return pd.read_csv(file_name, header=None, index_col=None).iloc[:, 1]
     else:
-        return [str(i + 1) for i in range(L)]
+        return [str(i + 1) for i in range(l)]
 
 
 def Kde(
@@ -109,7 +144,7 @@ def Kde(
     return kde
 
 
-def MakeKde(df, points=args.kde_points, start=-args.cut * args.bw, l=L):
+def MakeKde(df, l, points=args.kde_points, start=-args.cut * args.bw):
     end = -start + l - 1
     grid = np.linspace(start, end, points)
     kdes = []
@@ -151,8 +186,8 @@ def MaxYs(X, Y):
     return maxys
 
 
-def MakePdfComplete(df, normalise=args.normalise):
-    counts = np.array(MakePdf(df))
+def MakePdfComplete(df, l, normalise=args.normalise):
+    counts = np.array(MakePdf(df, l))
     N = FindN(df)
     totals = np.array([np.sum(el) for el in counts])
     pdf = np.array(
@@ -167,12 +202,12 @@ def MakePdfComplete(df, normalise=args.normalise):
 
 
 def MakePdfKdeYs(
-    df, normalise=args.normalise, make_kdes=args.kde, make_bars=args.bar
+    df, l, normalise=args.normalise, make_kdes=args.kde, make_bars=args.bar
 ):
-    pdf, totals, N = MakePdfComplete(df, normalise=normalise)
+    pdf, totals, N = MakePdfComplete(df, l, normalise=normalise)
     kdes = None
     if make_kdes == "yes":
-        kdes, grid, width = MakeKde(df)
+        kdes, grid, width = MakeKde(df, l)
 
     # Normalise by counts and get maxys
     pdf = Normalise(pdf, totals, N, normalise)
@@ -184,7 +219,7 @@ def MakePdfKdeYs(
     return pdf, kdes, maxys
 
 
-def EarliestAndLatest(in_file=args.transition_data, l=L):
+def EarliestAndLatest(in_file=args.transition_data, l=None):
     out = [[0, l] for i in range(l)]
     if in_file != None:
         out = [[l, 0] for i in range(l)]
@@ -204,43 +239,8 @@ def EarliestAndLatest(in_file=args.transition_data, l=L):
                     )
     return out
 
+
 def main():
-    # See above for update
-    # Axes sharing cases (also matters what normalise is...)
-    # args.sharey
-    # args.sharey_all
-    # args.sharey_feature
-    #     1. Single data: max y across all axes: sharey == "yes"
-    #     2. Single data: max y for a given feature: sharey == "no"
-    #     3. Double data: max y across all axes: sharey_all == "yes"
-    #     4. Double data: max y across all features for each set: sharey_all == "no", sharey == "yes"
-    #     5. Double data: max y across both within same feature: sharey_all == "no", sharey == "no", sharey_feature == "yes"
-    #     6. Double data: max y for each data for each feature: sharey_all == "no", sharey == "no", sharey_feature == "no"
-    #     7. Double data (normed to 1): max y for each data for each feature: sharey_all == "no", sharey == "no", sharey_feature == "no"
-
-
-    # DEFAULT TO STYLE 3, if f2 != None, and default to same transition data
-    if args.f2 != None:
-        args.aspect = 0.9
-        args.normalise = "no"
-        args.sharey_type = "feature"
-        if args.transition_data2 == None:
-            args.transition_data2 = args.transition_data
-
-    if args.sharey_type == "all":
-        args.sharey = "yes"
-        args.sharey_all = "yes"
-
-    if args.sharey_type == "feature":
-        args.sharey = "no"
-        args.sharey_all = "no"
-        args.sharey_feature = "yes"
-
-
-    font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
-
-    mpl.rc("font", **font)
-
     df = pd.read_csv(args.f, index_col=None, sep=",").astype(int)
     L = np.amax(df.values) + 1
     if args.f2 != None:
@@ -252,13 +252,13 @@ def main():
     pdf, kdes, maxys = MakePdfKdeYs(df, l=L)
     ts = EarliestAndLatest(args.transition_data, l=L)
     if args.f2 != None:
-        pdf2, kdes2, maxys2 = MakePdfKdeYs(df2, l=L)
+        pdf2, kdes2, maxys2 = MakePdfKdeYs(df2)
         ts2 = EarliestAndLatest(args.transition_data2, l=L)
 
     # Make orders
-    order = Order(pdf, l=L) if args.ordered == "yes" else range(L)
+    order = Order(pdf, L) if args.ordered == "yes" else range(L)
     if args.f2 != None:
-        order2 = Order(pdf, l=L) if args.ordered == "yes" else range(L)
+        order2 = Order(pdf, L) if args.ordered == "yes" else range(L)
     labels = GetLabels(file_name=args.labels, l=L)
 
 
@@ -455,7 +455,6 @@ def main():
     else:
         if args.out_type == "png":
             fig.savefig(args.outfile + ".png", bbox_inches="tight", dpi=600)
-
 
 if __name__ == "__main__":
     main()

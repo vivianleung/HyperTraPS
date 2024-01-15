@@ -11,7 +11,7 @@ from matplotlib.colors import LinearSegmentedColormap
 
 from utils import print_args
 
-parser = argparse.ArgumentParser(add_help=True)
+parser = argparse.ArgumentParser()
 parser.add_argument("-f", required=False, default=None, type=str)
 parser.add_argument("-outfile", required=False, default="_raw_data", type=str)
 parser.add_argument("-labels", required=False, default=None, type=str)
@@ -39,17 +39,16 @@ args.outfile = (
 # Print args used in script after parsing
 print_args(args)
 
-font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
-mpl.rc("font", **font)
-
-plt.style.use("seaborn-colorblind")
-
 
 def Size(width, height, s=1):
     return s * 34 / max(width, height)
 
-
 def main():
+    font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+    mpl.rc("font", **font)
+
+    plt.style.use("seaborn-colorblind")
+
     df = pd.read_csv(args.f, header=None, index_col=None, sep=" ")
     if args.row_every == 2:
         df = df.iloc[1 :: args.row_every, :]
