@@ -31,18 +31,21 @@ parser.add_argument('-o', "--outfile",
 
 args = parser.parse_args()
 
+def main():
+    if args.outfile is not None:
+        outfile = args.outfile
+        
+    else:
+        outfile = f"{args.infile.rpartition('.')[0]}.ht.csv"
 
-if args.outfile is not None:
-    outfile = args.outfile
-    
-else:
-    outfile = f"{args.infile.rpartition('.')[0]}.ht.csv"
+    ht = (
+        pd.read_csv(args.infile, sep='\t', index_col=0)
+        .rename_axis(index=None, columns='Isolate')
+        .T
+    )
+    ht.to_csv(outfile)
 
-ht = (
-    pd.read_csv(args.infile, sep='\t', index_col=0)
-    .rename_axis(index=None, columns='Isolate')
-    .T
-)
-ht.to_csv(outfile)
+    print("Output saved to", outfile)
 
-print("Output saved to", outfile)
+if __name__ == "__main__":
+    main()
