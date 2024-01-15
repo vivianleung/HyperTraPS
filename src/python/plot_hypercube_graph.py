@@ -632,6 +632,7 @@ def Diff(node1, node2, L, node_type=args.node_type):
 def MakeGreedyLabelSet(
     state_labels,
     colormap,
+    ncolors,
     labels_definition=args.extra_labels_routes,
     label_colour_type=args.label_colour_type,
     node_type=args.node_type,
@@ -691,6 +692,7 @@ def MakeProbableLabelSet(
     G,
     state_labels,
     colormap,
+    ncolors,
     labels_definition=args.extra_labels_routes,
     label_colour_type=args.label_colour_type,
     node_type=args.node_type,
@@ -750,6 +752,7 @@ def MakeProbableLabelSetData(
     state_labels,
     colormap,
     L,
+    ncolors,
     transition_data=args.transition_data,
     labels_definition=args.extra_labels_routes,
     label_colour_type=args.label_colour_type,
@@ -814,7 +817,6 @@ def MakeProbableLabelSetData(
 
 
 
-
 def CycleColors(i, ncolors, taken=2):
     return i % (ncolors - taken) + int(taken / 2)
 
@@ -826,6 +828,7 @@ def CycleColors(i, ncolors, taken=[0, 2]):
 
 def CycleColors(i, ncolors, taken=[0, 2]):
     return i
+
 
 
 def main():
@@ -924,56 +927,9 @@ def main():
         plt.savefig(out, dpi=300)
 
 
-weights_original = Adjust(
-    weights, float(args.edge_alpha), float(args.edge_scale)
-)
-weights = Adjust(
-    weights, float(args.edge_scale_exponent), float(args.edge_scale)
-)
-if args.probable_paths != None:
-    weights_original_2 = Adjust(
-        weights_2, float(args.edge_alpha), float(args.edge_scale)
-    )
-    weights_2 = Adjust(
-        weights_2, float(args.edge_scale_exponent), float(args.edge_scale)
-    )
-
-
-# Plotting
-old_colorblind = [
-    "#0072b2",
-    "#009e73",
-    "#d55e00",
-    "#cc79a7",
-    "#f0e442",
-    "#56e4b9",
-]
-plt.clf()
-
-try:
-    # deprecated since 3.6
-    plt.style.use("seaborn-colorblind")
-except (FileNotFoundError, OSError):
-    plt.style.use("seaborn-v0_8-colorblind")
-
-ncolors_old = 6
-ncolors = ncolors_old
-pal = sns.color_palette("colorblind", ncolors_old)
-pal = sns.color_palette(old_colorblind)
-
-fig = plt.figure()
-fig.set_size_inches(args.width, args.width * args.aspect)
-ax = fig.add_subplot(111)
-pos = fixed_positions
-colors = MakeColors(weights)
-if args.node_normalise == 1.0 or args.edge_normalise == 1.0:
-    colorn = pal[0]
-else:
-    colorn = pal[0]
-
-
-def CycleColors(i, ncolors=ncolors, taken=2):
-    return i % (ncolors - taken) + int(taken / 2)
+    for node in G.nodes():
+        if len(G.in_edges(node)) < 1:
+            print(node)
 
     fixed_position = MakeFixedPosition(G, L)
 
@@ -1091,7 +1047,13 @@ def CycleColors(i, ncolors=ncolors, taken=2):
         "#56e4b9",
     ]
     plt.clf()
-    plt.style.use("seaborn-colorblind")
+
+    try:
+        # deprecated since 3.6
+        plt.style.use("seaborn-colorblind")
+    except (FileNotFoundError, OSError):
+        plt.style.use("seaborn-v0_8-colorblind")
+
     ncolors_old = 6
     ncolors = ncolors_old
     pal = sns.color_palette("colorblind", ncolors_old)
@@ -1106,9 +1068,9 @@ def CycleColors(i, ncolors=ncolors, taken=2):
         colorn = pal[0]
     else:
         colorn = pal[0]
-        
 
     mw = max(node_sizes) / ((2 / L) * (1 / args.max_width)) * 8 / L
+
     if args.probable_paths != None:
         node_sizes_2 = [node_sizes_d[el] for el in G_2.nodes()]
 
@@ -1251,12 +1213,12 @@ def CycleColors(i, ncolors=ncolors, taken=2):
             state_labels = [str(i + 1) for i in range(L)]
         if args.label_type == "greedy":
             big_labels, label_colours = MakeGreedyLabelSet(
-                state_labels=state_labels, colormap=args.colormap
+                state_labels=state_labels, colormap=args.colormap, ncolors=ncolors
             )
         else:
             if args.label_type == "probable":
                 big_labels, label_colours, paths = MakeProbableLabelSet(
-                    G=G, state_labels=state_labels, colormap=args.colormap
+                    G=G, state_labels=state_labels, colormap=args.colormap, ncolors=ncolors
                 )
             else:
                 if (
@@ -1270,10 +1232,11 @@ def CycleColors(i, ncolors=ncolors, taken=2):
                         colormap=args.colormap,
                         transition_data=args.transition_data,
                         L=L,
+                        ncolors=ncolors
                     )
                 if args.label_type == "greedy_data":
                     big_labels, label_colours = MakeGreedyLabelSet(
-                        state_labels=state_labels, colormap=args.colormap
+                        state_labels=state_labels, colormap=args.colormap, ncolors=ncolors
                     )
 
                 if (
