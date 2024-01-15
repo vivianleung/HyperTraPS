@@ -814,7 +814,7 @@ def MakeProbableLabelSetData(
 
 
 # MAIN BLOCK
-font = {"family": "sans-serif", "size": args.fontsize, "sans-serif": ["Arial"]}
+font = {"family": "sans-serif", "size": args.fontsize} #, "sans-serif": ["Arial"]}
 mpl.rc("font", **font)
 
 prefix = ""

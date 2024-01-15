@@ -14,7 +14,9 @@ import argparse
 
 from utils import print_args
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    add_help=True, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
 parser.add_argument("-f", required=False, default=None, type=str)
 parser.add_argument("-transitions", required=False, default=None)
 parser.add_argument("-bar", required=False, default="no")
